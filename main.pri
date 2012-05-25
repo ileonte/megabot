@@ -1,0 +1,1 @@
+MB_BASE_DIR = $$PWD

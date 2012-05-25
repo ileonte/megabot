@@ -1,0 +1,4 @@
+LUAEXPAT_1.0 {
+    global:
+	luaopen_lxp;
+};

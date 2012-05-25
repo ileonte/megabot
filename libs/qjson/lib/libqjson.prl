@@ -1,0 +1,6 @@
+QMAKE_PRL_BUILD_DIR = /home/ileonte/work/projects/megabot-ng/libs/qjson/src/
+QMAKE_PRO_INPUT = src.pro
+QMAKE_PRL_TARGET = libqjson.a
+QMAKE_PRL_CONFIG = include_source_dir lex yacc warn_on uic resources qt warn_on release incremental link_prl gdb_dwarf_index def_files_disabled exceptions no_mocdepend release stl qt_no_framework staticlib create_prl static staticlib moc thread
+QMAKE_PRL_VERSION = 0.7.1
+QMAKE_PRL_LIBS = -L/usr/lib64/qt4  -lQtCore -L/usr/lib64 -L/usr/lib64/qt4 -lgthread-2.0 -lrt -lglib-2.0 -lpthread  
