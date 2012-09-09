@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -174,6 +174,7 @@ void QXmppBookmarkSet::setUrls(const QList<QXmppBookmarkUrl> &urls)
     m_urls = urls;
 }
 
+/// \cond
 bool QXmppBookmarkSet::isBookmarkSet(const QDomElement &element)
 {
     return element.tagName() == "storage" &&
@@ -188,7 +189,7 @@ void QXmppBookmarkSet::parse(const QDomElement &element)
         if (childElement.tagName() == "conference")
         {
             QXmppBookmarkConference conference;
-            conference.setAutoJoin(childElement.attribute("autojoin") == "true");
+            conference.setAutoJoin(childElement.attribute("autojoin") == "true" || childElement.attribute("autojoin") == "1");
             conference.setJid(childElement.attribute("jid"));
             conference.setName(childElement.attribute("name"));
             conference.setNickName(childElement.firstChildElement("nick").text());
@@ -229,4 +230,4 @@ void QXmppBookmarkSet::toXml(QXmlStreamWriter *writer) const
     }
     writer->writeEndElement();
 }
-
+/// \endcond

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *	Jeremy Lainé
@@ -31,7 +31,7 @@
 ///
 /// \ingroup Stanzas
 
-class QXmppDialback : public QXmppStanza
+class QXMPP_EXPORT QXmppDialback : public QXmppStanza
 {
 public:
     /// This enum is used to describe a dialback command.

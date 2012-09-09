@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -26,7 +26,6 @@
 
 #include "QXmppCallManager.h"
 #include "QXmppClient.h"
-#include "QXmppCodec.h"
 #include "QXmppConstants.h"
 #include "QXmppJingleIq.h"
 #include "QXmppRtpChannel.h"
@@ -770,6 +769,7 @@ QXmppCallManager::~QXmppCallManager()
     delete d;
 }
 
+/// \cond
 QStringList QXmppCallManager::discoveryFeatures() const
 {
     return QStringList()
@@ -816,6 +816,7 @@ void QXmppCallManager::setClient(QXmppClient *client)
                     this, SLOT(_q_presenceReceived(QXmppPresence)));
     Q_ASSERT(check);
 }
+/// \endcond
 
 /// Initiates a new outgoing call to the specified recipient.
 ///
@@ -837,7 +838,7 @@ QXmppCall *QXmppCallManager::call(const QString &jid)
     }
 
     QXmppCall *call = new QXmppCall(jid, QXmppCall::OutgoingDirection, this);
-    call->d->sid = generateStanzaHash();
+    call->d->sid = QXmppUtils::generateStanzaHash();
 
     // register call
     d->calls << call;

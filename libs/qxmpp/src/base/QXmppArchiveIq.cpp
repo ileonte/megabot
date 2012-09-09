@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -24,10 +24,8 @@
 #include <QDomElement>
 
 #include "QXmppArchiveIq.h"
+#include "QXmppConstants.h"
 #include "QXmppUtils.h"
-
-static const char *ns_archive = "urn:xmpp:archive";
-static const char *ns_rsm = "http://jabber.org/protocol/rsm";
 
 QXmppArchiveMessage::QXmppArchiveMessage()
     : m_received(false)
@@ -86,13 +84,16 @@ QXmppArchiveChat::QXmppArchiveChat()
 {
 }
 
+/// \cond
 void QXmppArchiveChat::parse(const QDomElement &element)
 {
     m_with = element.attribute("with");
-    m_start = datetimeFromString(element.attribute("start"));
+    m_start = QXmppUtils::datetimeFromString(element.attribute("start"));
     m_subject = element.attribute("subject");
     m_thread = element.attribute("thread");
     m_version = element.attribute("version").toInt();
+
+    QDateTime timeAccu = m_start;
 
     QDomElement child = element.firstChildElement();
     while (!child.isNull())
@@ -101,7 +102,8 @@ void QXmppArchiveChat::parse(const QDomElement &element)
         {
             QXmppArchiveMessage message;
             message.setBody(child.firstChildElement("body").text());
-            message.setDate(m_start.addSecs(child.attribute("secs").toInt()));
+            timeAccu = timeAccu.addSecs(child.attribute("secs").toInt());
+            message.setDate(timeAccu);
             message.setReceived(child.tagName() == "from");
             m_messages << message;
         }
@@ -109,26 +111,33 @@ void QXmppArchiveChat::parse(const QDomElement &element)
     }
 }
 
-void QXmppArchiveChat::toXml(QXmlStreamWriter *writer) const
+void QXmppArchiveChat::toXml(QXmlStreamWriter *writer, const QXmppResultSetReply &rsm) const
 {
     writer->writeStartElement("chat");
     writer->writeAttribute("xmlns", ns_archive);
     helperToXmlAddAttribute(writer, "with", m_with);
     if (m_start.isValid())
-        helperToXmlAddAttribute(writer, "start", datetimeToString(m_start));
+        helperToXmlAddAttribute(writer, "start", QXmppUtils::datetimeToString(m_start));
     helperToXmlAddAttribute(writer, "subject", m_subject);
     helperToXmlAddAttribute(writer, "thread", m_thread);
     if (m_version)
         helperToXmlAddAttribute(writer, "version", QString::number(m_version));
+
+    QDateTime prevTime = m_start;
+
     foreach (const QXmppArchiveMessage &message, m_messages)
     {
         writer->writeStartElement(message.isReceived() ? "from" : "to");
-        helperToXmlAddAttribute(writer, "secs", QString::number(m_start.secsTo(message.date())));
+        helperToXmlAddAttribute(writer, "secs", QString::number(prevTime.secsTo(message.date())));
         writer->writeTextElement("body", message.body());
         writer->writeEndElement();
+        prevTime = message.date();
     }
+    if (!rsm.isNull())
+        rsm.toXml(writer);
     writer->writeEndElement();
 }
+/// \endcond
 
 /// Returns the conversation's messages.
 
@@ -228,6 +237,25 @@ void QXmppArchiveChatIq::setChat(const QXmppArchiveChat &chat)
     m_chat = chat;
 }
 
+/// Returns the result set management reply.
+///
+/// This is used for paging through messages.
+
+QXmppResultSetReply QXmppArchiveChatIq::resultSetReply() const
+{
+    return m_rsmReply;
+}
+
+/// Sets the result set management reply.
+///
+/// This is used for paging through messages.
+
+void QXmppArchiveChatIq::setResultSetReply(const QXmppResultSetReply& rsm)
+{
+    m_rsmReply = rsm;
+}
+
+/// \cond
 bool QXmppArchiveChatIq::isArchiveChatIq(const QDomElement &element)
 {
     QDomElement chatElement = element.firstChildElement("chat");
@@ -237,18 +265,21 @@ bool QXmppArchiveChatIq::isArchiveChatIq(const QDomElement &element)
 
 void QXmppArchiveChatIq::parseElementFromChild(const QDomElement &element)
 {
-    m_chat.parse(element.firstChildElement("chat"));
+    QDomElement chatElement = element.firstChildElement("chat");
+    m_chat.parse(chatElement);
+    m_rsmReply.parse(chatElement);
 }
 
 void QXmppArchiveChatIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
 {
-    m_chat.toXml(writer);
+    m_chat.toXml(writer, m_rsmReply);
 }
+/// \endcond
 
 /// Constructs a QXmppArchiveListIq.
 
 QXmppArchiveListIq::QXmppArchiveListIq()
-    : QXmppIq(QXmppIq::Get), m_max(0)
+    : QXmppIq(QXmppIq::Get)
 {
 }
 
@@ -264,23 +295,6 @@ QList<QXmppArchiveChat> QXmppArchiveListIq::chats() const
 void QXmppArchiveListIq::setChats(const QList<QXmppArchiveChat> &chats)
 {
     m_chats = chats;
-}
-
-/// Returns the maximum number of results.
-///
-
-int QXmppArchiveListIq::max() const
-{
-    return m_max;
-}
-
-/// Sets the maximum number of results.
-///
-/// \param max
-
-void QXmppArchiveListIq::setMax(int max)
-{
-    m_max = max;
 }
 
 /// Returns the JID which archived conversations must match.
@@ -334,6 +348,43 @@ void QXmppArchiveListIq::setEnd(const QDateTime &end)
     m_end = end;
 }
 
+/// Returns the result set management query.
+///
+/// This is used for paging through conversations.
+
+QXmppResultSetQuery QXmppArchiveListIq::resultSetQuery() const
+{
+    return m_rsmQuery;
+}
+
+/// Sets the result set management query.
+///
+/// This is used for paging through conversations.
+
+void QXmppArchiveListIq::setResultSetQuery(const QXmppResultSetQuery& rsm)
+{
+    m_rsmQuery = rsm;
+}
+
+/// Returns the result set management reply.
+///
+/// This is used for paging through conversations.
+
+QXmppResultSetReply QXmppArchiveListIq::resultSetReply() const
+{
+    return m_rsmReply;
+}
+
+/// Sets the result set management reply.
+///
+/// This is used for paging through conversations.
+
+void QXmppArchiveListIq::setResultSetReply(const QXmppResultSetReply& rsm)
+{
+    m_rsmReply = rsm;
+}
+
+/// \cond
 bool QXmppArchiveListIq::isArchiveListIq(const QDomElement &element)
 {
     QDomElement listElement = element.firstChildElement("list");
@@ -344,12 +395,11 @@ void QXmppArchiveListIq::parseElementFromChild(const QDomElement &element)
 {
     QDomElement listElement = element.firstChildElement("list");
     m_with = listElement.attribute("with");
-    m_start = datetimeFromString(listElement.attribute("start"));
-    m_end = datetimeFromString(listElement.attribute("end"));
+    m_start = QXmppUtils::datetimeFromString(listElement.attribute("start"));
+    m_end = QXmppUtils::datetimeFromString(listElement.attribute("end"));
 
-    QDomElement setElement = listElement.firstChildElement("set");
-    if (setElement.namespaceURI() == ns_rsm)
-        m_max = setElement.firstChildElement("max").text().toInt();
+    m_rsmQuery.parse(listElement);
+    m_rsmReply.parse(listElement);
 
     QDomElement child = listElement.firstChildElement();
     while (!child.isNull())
@@ -371,16 +421,13 @@ void QXmppArchiveListIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
     if (!m_with.isEmpty())
         helperToXmlAddAttribute(writer, "with", m_with);
     if (m_start.isValid())
-        helperToXmlAddAttribute(writer, "start", datetimeToString(m_start));
+        helperToXmlAddAttribute(writer, "start", QXmppUtils::datetimeToString(m_start));
     if (m_end.isValid())
-        helperToXmlAddAttribute(writer, "end", datetimeToString(m_end));
-    if (m_max > 0)
-    {
-        writer->writeStartElement("set");
-        writer->writeAttribute("xmlns", ns_rsm);
-        helperToXmlAddTextElement(writer, "max", QString::number(m_max));
-        writer->writeEndElement();
-    }
+        helperToXmlAddAttribute(writer, "end", QXmppUtils::datetimeToString(m_end));
+    if (!m_rsmQuery.isNull())
+        m_rsmQuery.toXml(writer);
+    else if (!m_rsmReply.isNull())
+        m_rsmReply.toXml(writer);
     foreach (const QXmppArchiveChat &chat, m_chats)
         chat.toXml(writer);
     writer->writeEndElement();
@@ -404,6 +451,7 @@ void QXmppArchivePrefIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
     writer->writeAttribute("xmlns", ns_archive);
     writer->writeEndElement();
 }
+/// \endcond
 
 /// Returns the JID which archived conversations must match.
 ///
@@ -456,6 +504,7 @@ void QXmppArchiveRemoveIq::setEnd(const QDateTime &end)
     m_end = end;
 }
 
+/// \cond
 bool QXmppArchiveRemoveIq::isArchiveRemoveIq(const QDomElement &element)
 {
     QDomElement retrieveElement = element.firstChildElement("remove");
@@ -466,8 +515,8 @@ void QXmppArchiveRemoveIq::parseElementFromChild(const QDomElement &element)
 {
     QDomElement listElement = element.firstChildElement("remove");
     m_with = listElement.attribute("with");
-    m_start = datetimeFromString(listElement.attribute("start"));
-    m_end = datetimeFromString(listElement.attribute("end"));
+    m_start = QXmppUtils::datetimeFromString(listElement.attribute("start"));
+    m_end = QXmppUtils::datetimeFromString(listElement.attribute("end"));
 }
 
 void QXmppArchiveRemoveIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
@@ -477,32 +526,16 @@ void QXmppArchiveRemoveIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
     if (!m_with.isEmpty())
         helperToXmlAddAttribute(writer, "with", m_with);
     if (m_start.isValid())
-        helperToXmlAddAttribute(writer, "start", datetimeToString(m_start));
+        helperToXmlAddAttribute(writer, "start", QXmppUtils::datetimeToString(m_start));
     if (m_end.isValid())
-        helperToXmlAddAttribute(writer, "end", datetimeToString(m_end));
+        helperToXmlAddAttribute(writer, "end", QXmppUtils::datetimeToString(m_end));
     writer->writeEndElement();
 }
+/// \endcond
 
 QXmppArchiveRetrieveIq::QXmppArchiveRetrieveIq()
-    : QXmppIq(QXmppIq::Get), m_max(0)
+    : QXmppIq(QXmppIq::Get)
 {
-}
-
-/// Returns the maximum number of results.
-///
-
-int QXmppArchiveRetrieveIq::max() const
-{
-    return m_max;
-}
-
-/// Sets the maximum number of results.
-///
-/// \param max
-
-void QXmppArchiveRetrieveIq::setMax(int max)
-{
-    m_max = max;
 }
 
 /// Returns the start date/time for the archived conversations.
@@ -539,6 +572,25 @@ void QXmppArchiveRetrieveIq::setWith(const QString &with)
     m_with = with;
 }
 
+/// Returns the result set management query.
+///
+/// This is used for paging through messages.
+
+QXmppResultSetQuery QXmppArchiveRetrieveIq::resultSetQuery() const
+{
+    return m_rsmQuery;
+}
+
+/// Sets the result set management query.
+///
+/// This is used for paging through messages.
+
+void QXmppArchiveRetrieveIq::setResultSetQuery(const QXmppResultSetQuery& rsm)
+{
+    m_rsmQuery = rsm;
+}
+
+/// \cond
 bool QXmppArchiveRetrieveIq::isArchiveRetrieveIq(const QDomElement &element)
 {
     QDomElement retrieveElement = element.firstChildElement("retrieve");
@@ -549,10 +601,9 @@ void QXmppArchiveRetrieveIq::parseElementFromChild(const QDomElement &element)
 {
     QDomElement retrieveElement = element.firstChildElement("retrieve");
     m_with = retrieveElement.attribute("with");
-    m_start = datetimeFromString(retrieveElement.attribute("start"));
-    QDomElement setElement = retrieveElement.firstChildElement("set");
-    if (setElement.namespaceURI() == ns_rsm)
-        m_max = setElement.firstChildElement("max").text().toInt();
+    m_start = QXmppUtils::datetimeFromString(retrieveElement.attribute("start"));
+
+    m_rsmQuery.parse(retrieveElement);
 }
 
 void QXmppArchiveRetrieveIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
@@ -560,13 +611,9 @@ void QXmppArchiveRetrieveIq::toXmlElementFromChild(QXmlStreamWriter *writer) con
     writer->writeStartElement("retrieve");
     writer->writeAttribute("xmlns", ns_archive);
     helperToXmlAddAttribute(writer, "with", m_with);
-    helperToXmlAddAttribute(writer, "start", datetimeToString(m_start));
-    if (m_max > 0)
-    {
-        writer->writeStartElement("set");
-        writer->writeAttribute("xmlns", ns_rsm);
-        helperToXmlAddTextElement(writer, "max", QString::number(m_max));
-        writer->writeEndElement();
-    }
+    helperToXmlAddAttribute(writer, "start", QXmppUtils::datetimeToString(m_start));
+    if (!m_rsmQuery.isNull())
+        m_rsmQuery.toXml(writer);
     writer->writeEndElement();
 }
+/// \endcond

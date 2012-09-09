@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -29,7 +29,7 @@
 #include <QDebug>
 #include <QSize>
 
-#include "QXmppCodec.h"
+#include "QXmppCodec_p.h"
 #include "QXmppRtpChannel.h"
 
 #include <cstring>
@@ -102,7 +102,7 @@ static qint16 search(qint16 val, qint16 *table, qint16 size)
  * For further information see John C. Bellamy's Digital Telephony, 1982,
  * John Wiley & Sons, pps 98-111 and 472-476.
  */
-quint8 linear2alaw(qint16 pcm_val)
+static quint8 linear2alaw(qint16 pcm_val)
 {
    qint16 mask;
    qint16 seg;
@@ -138,7 +138,7 @@ quint8 linear2alaw(qint16 pcm_val)
  * alaw2linear() - Convert an A-law value to 16-bit linear PCM
  *
  */
-qint16 alaw2linear(quint8 a_val)
+static qint16 alaw2linear(quint8 a_val)
 {
    qint16 t;
    qint16 seg;
@@ -190,7 +190,7 @@ qint16 alaw2linear(quint8 a_val)
  * For further information see John C. Bellamy's Digital Telephony, 1982,
  * John Wiley & Sons, pps 98-111 and 472-476.
  */
-quint8 linear2ulaw(qint16 pcm_val)
+static quint8 linear2ulaw(qint16 pcm_val)
 {
    qint16 mask;
    qint16 seg;
@@ -231,7 +231,7 @@ quint8 linear2ulaw(qint16 pcm_val)
  * Note that this function expects to be passed the complement of the
  * original code word. This is in keeping with ISDN conventions.
  */
-qint16 ulaw2linear(quint8 u_val)
+static qint16 ulaw2linear(quint8 u_val)
 {
    qint16 t;
 
@@ -246,6 +246,18 @@ qint16 ulaw2linear(quint8 u_val)
    t <<= ((unsigned)u_val & SEG_MASK) >> SEG_SHIFT;
 
    return ((u_val & SIGN_BIT) ? (BIAS - t) : (t - BIAS));
+}
+
+QXmppCodec::~QXmppCodec()
+{
+}
+
+QXmppVideoDecoder::~QXmppVideoDecoder()
+{
+}
+
+QXmppVideoEncoder::~QXmppVideoEncoder()
+{
 }
 
 QXmppG711aCodec::QXmppG711aCodec(int clockrate)

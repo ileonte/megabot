@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -27,7 +27,7 @@
 #include <QMetaType>
 #include <QTimer>
 
-#include "QXmppCodec.h"
+#include "QXmppCodec_p.h"
 #include "QXmppJingleIq.h"
 #include "QXmppRtpChannel.h"
 
@@ -167,10 +167,6 @@ void QXmppRtpChannel::setRemotePayloadTypes(const QList<QXmppJinglePayloadType> 
     payloadTypesChanged();
 }
 
-void QXmppRtpChannel::payloadTypesChanged()
-{
-}
-
 enum CodecId {
     G711u = 0,
     GSM = 3,
@@ -307,9 +303,7 @@ QXmppCodec *QXmppRtpAudioChannelPrivate::codecForPayloadType(const QXmppJinglePa
     return 0;
 }
 
-/// Creates a new RTP audio channel.
-///
-/// \param parent
+/// Constructs a new RTP audio channel with the given \a parent.
 
 QXmppRtpAudioChannel::QXmppRtpAudioChannel(QObject *parent)
     : QIODevice(parent)
@@ -369,15 +363,13 @@ QXmppRtpAudioChannel::~QXmppRtpAudioChannel()
 }
 
 /// Returns the number of bytes that are available for reading.
-///
 
 qint64 QXmppRtpAudioChannel::bytesAvailable() const
 {
     return QIODevice::bytesAvailable() + d->incomingBuffer.size();
 }
 
-/// Closes the RTP channel.
-///
+/// Closes the RTP audio channel.
 
 void QXmppRtpAudioChannel::close()
 {
@@ -490,11 +482,24 @@ bool QXmppRtpAudioChannel::isSequential() const
     return true;
 }
 
+/// Returns the mode in which the channel has been opened.
+
 QIODevice::OpenMode QXmppRtpAudioChannel::openMode() const
 {
     return QIODevice::openMode();
 }
 
+/// Returns the RTP channel's payload type.
+///
+/// You can use this to determine the QAudioFormat to use with your
+/// QAudioInput/QAudioOutput.
+
+QXmppJinglePayloadType QXmppRtpAudioChannel::payloadType() const
+{
+    return d->payloadType;
+}
+
+/// \cond
 qint64 QXmppRtpAudioChannel::readData(char * data, qint64 maxSize)
 {
     // if we are filling the buffer, return empty samples
@@ -531,16 +536,6 @@ qint64 QXmppRtpAudioChannel::readData(char * data, qint64 maxSize)
 
     d->incomingPos += maxSize;
     return maxSize;
-}
-
-/// Returns the RTP channel's payload type.
-///
-/// You can use this to determine the QAudioFormat to use with your
-/// QAudioInput/QAudioOutput.
-
-QXmppJinglePayloadType QXmppRtpAudioChannel::payloadType() const
-{
-    return d->payloadType;
 }
 
 void QXmppRtpAudioChannel::payloadTypesChanged()
@@ -580,6 +575,7 @@ void QXmppRtpAudioChannel::payloadTypesChanged()
 
     open(QIODevice::ReadWrite | QIODevice::Unbuffered);
 }
+/// \endcond
 
 /// Returns the position in the received audio data.
 
@@ -634,6 +630,7 @@ void QXmppRtpAudioChannel::stopTone(QXmppRtpAudioChannel::Tone tone)
     }
 }
 
+/// \cond
 qint64 QXmppRtpAudioChannel::writeData(const char * data, qint64 maxSize)
 {
     if (!d->outgoingCodec) {
@@ -649,6 +646,7 @@ qint64 QXmppRtpAudioChannel::writeData(const char * data, qint64 maxSize)
 
     return maxSize;
 }
+/// \endcond
 
 void QXmppRtpAudioChannel::writeDatagram()
 {
@@ -767,32 +765,36 @@ QXmppVideoFrame::QXmppVideoFrame(int bytes, const QSize &size, int bytesPerLine,
     m_data.resize(bytes);
 }
 
+/// Returns a pointer to the start of the frame data buffer.
+
 uchar *QXmppVideoFrame::bits()
 {
     return (uchar*)m_data.data();
 }
+
+/// Returns a pointer to the start of the frame data buffer.
 
 const uchar *QXmppVideoFrame::bits() const
 {
     return (const uchar*)m_data.constData();
 }
 
-/** Returns the number of bytes in a scan line.
- */
+/// Returns the number of bytes in a scan line.
+
 int QXmppVideoFrame::bytesPerLine() const
 {
     return m_bytesPerLine;
 }
 
-/** Returns the height of a video frame.
- */
+/// Returns the height of a video frame.
+
 int QXmppVideoFrame::height() const
 {
     return m_height;
 }
 
-/** Returns true if the frame is valid.
- */
+/// Returns true if the frame is valid.
+
 bool QXmppVideoFrame::isValid() const
 {
     return m_pixelFormat != Format_Invalid &&
@@ -800,29 +802,29 @@ bool QXmppVideoFrame::isValid() const
            m_mappedBytes > 0;
 }
 
-/** Returns the number of bytes occupied by the mapped frame data.
- */
+/// Returns the number of bytes occupied by the mapped frame data.
+
 int QXmppVideoFrame::mappedBytes() const
 {
     return m_mappedBytes;
 }
 
-/** Returns the color format of a video frame.
- */
+/// Returns the color format of a video frame.
+
 QXmppVideoFrame::PixelFormat QXmppVideoFrame::pixelFormat() const
 {
     return m_pixelFormat;
 }
 
-/** Returns the size of a video frame.
- */
+/// Returns the size of a video frame.
+
 QSize QXmppVideoFrame::size() const
 {
     return QSize(m_width, m_height);
 }
 
-/** Returns the width of a video frame.
- */
+/// Returns the width of a video frame.
+
 int QXmppVideoFrame::width() const
 {
     return m_width;
@@ -853,6 +855,8 @@ QXmppRtpVideoChannelPrivate::QXmppRtpVideoChannelPrivate()
 {
     outgoingSsrc = qrand();
 }
+
+/// Constructs a new RTP video channel with the given \a parent.
 
 QXmppRtpVideoChannel::QXmppRtpVideoChannel(QObject *parent)
     : QXmppLoggable(parent)
@@ -900,8 +904,7 @@ QXmppRtpVideoChannel::~QXmppRtpVideoChannel()
     delete d;
 }
 
-/// Closes the RTP channel.
-///
+/// Closes the RTP video channel.
 
 void QXmppRtpVideoChannel::close()
 {
@@ -928,6 +931,8 @@ void QXmppRtpVideoChannel::datagramReceived(const QByteArray &ba)
     d->frames << decoder->handlePacket(packet);
 }
 
+/// Returns the video format used by the encoder.
+
 QXmppVideoFormat QXmppRtpVideoChannel::decoderFormat() const
 {
     if (d->decoders.isEmpty())
@@ -936,10 +941,14 @@ QXmppVideoFormat QXmppRtpVideoChannel::decoderFormat() const
     return d->decoders.value(key)->format();
 }
 
+/// Returns the video format used by the encoder.
+
 QXmppVideoFormat QXmppRtpVideoChannel::encoderFormat() const
 {
     return d->outgoingFormat;
 }
+
+/// Sets the video format used by the encoder.
 
 void QXmppRtpVideoChannel::setEncoderFormat(const QXmppVideoFormat &format)
 {
@@ -947,6 +956,8 @@ void QXmppRtpVideoChannel::setEncoderFormat(const QXmppVideoFormat &format)
         return;
     d->outgoingFormat = format;
 }
+
+/// Returns the mode in which the channel has been opened.
 
 QIODevice::OpenMode QXmppRtpVideoChannel::openMode() const
 {
@@ -958,6 +969,7 @@ QIODevice::OpenMode QXmppRtpVideoChannel::openMode() const
     return mode;
 }
 
+/// \cond
 void QXmppRtpVideoChannel::payloadTypesChanged()
 {
     // refresh decoders
@@ -1008,6 +1020,9 @@ void QXmppRtpVideoChannel::payloadTypesChanged()
         }
     }
 }
+/// \endcond
+
+/// Decodes buffered RTP packets and returns a list of video frames.
 
 QList<QXmppVideoFrame> QXmppRtpVideoChannel::readFrames()
 {
@@ -1015,6 +1030,8 @@ QList<QXmppVideoFrame> QXmppRtpVideoChannel::readFrames()
     d->frames.clear();
     return frames;
 }
+
+/// Encodes a video \a frame and sends RTP packets.
 
 void QXmppRtpVideoChannel::writeFrame(const QXmppVideoFrame &frame)
 {

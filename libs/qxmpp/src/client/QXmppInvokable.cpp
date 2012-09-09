@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Ian Reinhart Geiser
@@ -110,7 +110,11 @@ void QXmppInvokable::buildMethodHash( )
     int methodCount = metaObject()->methodCount ();
     for( int idx = 0; idx < methodCount; ++idx)
     {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+        QByteArray signature = metaObject()->method(idx).methodSignature();
+#else
         QByteArray signature = metaObject()->method(idx).signature();
+#endif
         m_methodHash[signature.left(signature.indexOf('('))] = idx;
 //         qDebug() << metaObject()->method(idx).parameterTypes();
     }
@@ -124,7 +128,11 @@ QStringList QXmppInvokable::interfaces( ) const
     {
         if( metaObject()->method(idx).methodType() == QMetaMethod::Slot )
         {
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+            QByteArray signature = metaObject()->method(idx).methodSignature();
+#else
             QByteArray signature = metaObject()->method(idx).signature();
+#endif
             results << signature.left(signature.indexOf('('));
         }
     }

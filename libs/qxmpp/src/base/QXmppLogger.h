@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
@@ -28,6 +28,8 @@
 
 #include <QObject>
 
+#include "QXmppGlobal.h"
+
 #ifdef QXMPP_LOGGABLE_TRACE
 #define qxmpp_loggable_trace(x) QString("%1(0x%2) %3").arg(metaObject()->className(), QString::number(reinterpret_cast<qint64>(this), 16), x)
 #else
@@ -40,7 +42,7 @@ class QXmppLoggerPrivate;
 ///
 /// \ingroup Core
 
-class QXmppLogger : public QObject
+class QXMPP_EXPORT QXmppLogger : public QObject
 {
     Q_OBJECT
     Q_ENUMS(LoggingType)
@@ -103,7 +105,7 @@ private:
 ///
 /// \ingroup Core
 
-class QXmppLoggable : public QObject
+class QXMPP_EXPORT QXmppLoggable : public QObject
 {
     Q_OBJECT
 

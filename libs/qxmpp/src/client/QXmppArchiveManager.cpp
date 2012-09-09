@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -26,6 +26,14 @@
 #include "QXmppArchiveIq.h"
 #include "QXmppArchiveManager.h"
 #include "QXmppClient.h"
+#include "QXmppConstants.h"
+
+/// \cond
+QStringList QXmppArchiveManager::discoveryFeatures() const
+{
+    // XEP-0036: Message Archiving
+    return QStringList() << ns_archive;
+}
 
 bool QXmppArchiveManager::handleStanza(const QDomElement &element)
 {
@@ -37,14 +45,14 @@ bool QXmppArchiveManager::handleStanza(const QDomElement &element)
     {
         QXmppArchiveChatIq archiveIq;
         archiveIq.parse(element);
-        emit archiveChatReceived(archiveIq.chat());
+        emit archiveChatReceived(archiveIq.chat(), archiveIq.resultSetReply());
         return true;
     }
     else if(QXmppArchiveListIq::isArchiveListIq(element))
     {
         QXmppArchiveListIq archiveIq;
         archiveIq.parse(element);
-        emit archiveListReceived(archiveIq.chats());
+        emit archiveListReceived(archiveIq.chats(), archiveIq.resultSetReply());
         return true;
     }
     else if(QXmppArchivePrefIq::isArchivePrefIq(element))
@@ -57,24 +65,43 @@ bool QXmppArchiveManager::handleStanza(const QDomElement &element)
 
     return false;
 }
+/// \endcond
 
 /// Retrieves the list of available collections. Once the results are
 /// received, the archiveListReceived() signal will be emitted.
 ///
-/// \param jid Optional JID if you only want conversations with a specific JID.
+/// \param jid JID you want conversations with.
 /// \param start Optional start time.
 /// \param end Optional end time.
-/// \param max Optional maximum number of collections to list.
+/// \param rsm Optional Result Set Management query
 ///
-void QXmppArchiveManager::listCollections(const QString &jid, const QDateTime &start, const QDateTime &end, int max)
+void QXmppArchiveManager::listCollections(const QString& jid, const QDateTime& start,
+                                          const QDateTime& end, const QXmppResultSetQuery &rsm)
 {
     QXmppArchiveListIq packet;
-    packet.setMax(max);
+    packet.setResultSetQuery(rsm);
     packet.setWith(jid);
     packet.setStart(start);
     packet.setEnd(end);
     client()->sendPacket(packet);
 }
+
+/// \overload
+/// Retrieves the list of available collections. Once the results are
+/// received, the archiveListReceived() signal will be emitted.
+///
+/// \param jid JID you want conversations with.
+/// \param start Start time.
+/// \param end End time.
+/// \param max Maximum number of collections to list.
+///
+void QXmppArchiveManager::listCollections(const QString &jid, const QDateTime &start, const QDateTime &end, int max)
+{
+    QXmppResultSetQuery rsm;
+    rsm.setMax(max);
+    listCollections(jid, start, end, rsm);
+}
+
 
 /// Removes the specified collection(s).
 ///
@@ -97,15 +124,30 @@ void QXmppArchiveManager::removeCollections(const QString &jid, const QDateTime 
 ///
 /// \param jid The JID of the collection
 /// \param start The start time of the collection.
-/// \param max Optional maximum number of messages to retrieve.
+/// \param rsm Optional Result Set Management query
 ///
-void QXmppArchiveManager::retrieveCollection(const QString &jid, const QDateTime &start, int max)
+void QXmppArchiveManager::retrieveCollection(const QString &jid, const QDateTime &start, const QXmppResultSetQuery &rsm)
 {
     QXmppArchiveRetrieveIq packet;
-    packet.setMax(max);
+    packet.setResultSetQuery(rsm);
     packet.setStart(start);
     packet.setWith(jid);
     client()->sendPacket(packet);
+}
+
+/// \overload
+/// Retrieves the specified collection. Once the results are received,
+/// the archiveChatReceived() will be emitted.
+///
+/// \param jid The JID of the collection
+/// \param start The start time of the collection.
+/// \param max Maximum number of messages to retrieve.
+///
+void QXmppArchiveManager::retrieveCollection(const QString &jid, const QDateTime &start, int max)
+{
+    QXmppResultSetQuery rsm;
+    rsm.setMax(max);
+    retrieveCollection(jid, start, rsm);
 }
 
 #if 0

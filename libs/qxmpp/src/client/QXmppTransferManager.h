@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -25,27 +25,30 @@
 #define QXMPPTRANSFERMANAGER_H
 
 #include <QDateTime>
+#include <QSharedData>
 #include <QUrl>
 #include <QVariant>
 
 #include "QXmppClientExtension.h"
-#include "QXmppIq.h"
-#include "QXmppByteStreamIq.h"
 
 class QTcpSocket;
 class QXmppByteStreamIq;
 class QXmppIbbCloseIq;
 class QXmppIbbDataIq;
 class QXmppIbbOpenIq;
-class QXmppSocksClient;
-class QXmppSocksServer;
+class QXmppIq;
 class QXmppStreamInitiationIq;
+class QXmppTransferFileInfoPrivate;
 class QXmppTransferJobPrivate;
+class QXmppTransferManager;
+class QXmppTransferManagerPrivate;
 
-class QXmppTransferFileInfo
+class QXMPP_EXPORT QXmppTransferFileInfo
 {
 public:
     QXmppTransferFileInfo();
+    QXmppTransferFileInfo(const QXmppTransferFileInfo &other);
+    ~QXmppTransferFileInfo();
 
     QDateTime date() const;
     void setDate(const QDateTime &date);
@@ -59,13 +62,11 @@ public:
     qint64 size() const;
     void setSize(qint64 size);
 
+    QXmppTransferFileInfo& operator=(const QXmppTransferFileInfo &other);
     bool operator==(const QXmppTransferFileInfo &other) const;
 
 private:
-    QDateTime m_date;
-    QByteArray m_hash;
-    QString m_name;
-    qint64 m_size;
+    QSharedDataPointer<QXmppTransferFileInfoPrivate> d;
 };
 
 /// \brief The QXmppTransferJob class represents a single file transfer job.
@@ -73,7 +74,7 @@ private:
 /// \sa QXmppTransferManager
 ///
 
-class QXmppTransferJob : public QXmppLoggable
+class QXMPP_EXPORT QXmppTransferJob : public QXmppLoggable
 {
     Q_OBJECT
     Q_ENUMS(Direction Error State)
@@ -175,20 +176,18 @@ public slots:
     void accept(QIODevice *output);
 
 private slots:
-    void _q_disconnected();
-    void _q_receiveData();
-    void _q_sendData();
     void _q_terminated();
 
 private:
-    QXmppTransferJob(const QString &jid, QXmppTransferJob::Direction direction, QObject *parent);
-    void checkData();
+    QXmppTransferJob(const QString &jid, QXmppTransferJob::Direction direction, QXmppClient *client, QObject *parent);
     void setState(QXmppTransferJob::State state);
     void terminate(QXmppTransferJob::Error error);
-    bool writeData(const QByteArray &data);
 
     QXmppTransferJobPrivate *const d;
     friend class QXmppTransferManager;
+    friend class QXmppTransferManagerPrivate;
+    friend class QXmppTransferIncomingJob;
+    friend class QXmppTransferOutgoingJob;
 };
 
 /// \brief The QXmppTransferManager class provides support for sending and
@@ -208,7 +207,7 @@ private:
 ///
 /// \ingroup Managers
 
-class QXmppTransferManager : public QXmppClientExtension
+class QXMPP_EXPORT QXmppTransferManager : public QXmppClientExtension
 {
     Q_OBJECT
     Q_PROPERTY(QString proxy READ proxy WRITE setProxy)
@@ -217,6 +216,7 @@ class QXmppTransferManager : public QXmppClientExtension
 
 public:
     QXmppTransferManager();
+    ~QXmppTransferManager();
 
     QString proxy() const;
     void setProxy(const QString &proxyJid);
@@ -265,8 +265,8 @@ private slots:
     void _q_socksServerConnected(QTcpSocket *socket, const QString &hostName, quint16 port);
 
 private:
-    QXmppTransferJob *getJobByRequestId(QXmppTransferJob::Direction direction, const QString &jid, const QString &id);
-    QXmppTransferJob *getJobBySid(QXmppTransferJob::Direction, const QString &jid, const QString &sid);
+    QXmppTransferManagerPrivate *d;
+
     void byteStreamIqReceived(const QXmppByteStreamIq&);
     void byteStreamResponseReceived(const QXmppIq&);
     void byteStreamResultReceived(const QXmppByteStreamIq&);
@@ -280,12 +280,7 @@ private:
     void streamInitiationSetReceived(const QXmppStreamInitiationIq&);
     void socksServerSendOffer(QXmppTransferJob *job);
 
-    int m_ibbBlockSize;
-    QList<QXmppTransferJob*> m_jobs;
-    QString m_proxy;
-    bool m_proxyOnly;
-    QXmppSocksServer *m_socksServer;
-    QXmppTransferJob::Methods m_supportedMethods;
+    friend class QXmppTransferManagerPrivate;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QXmppTransferJob::Methods)

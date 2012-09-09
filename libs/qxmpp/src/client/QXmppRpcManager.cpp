@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -137,6 +137,7 @@ QXmppRemoteMethodResult QXmppRpcManager::callRemoteMethod( const QString &jid,
     return method.call();
 }
 
+/// \cond
 QStringList QXmppRpcManager::discoveryFeatures() const
 {
     // XEP-0009: Jabber-RPC
@@ -177,4 +178,4 @@ bool QXmppRpcManager::handleStanza(const QDomElement &element)
     }
     return false;
 }
-
+/// \endcond

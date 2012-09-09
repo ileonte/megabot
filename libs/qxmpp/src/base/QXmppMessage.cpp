@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
@@ -23,6 +23,7 @@
  */
 
 #include <QDomElement>
+#include <QTextStream>
 #include <QXmlStreamWriter>
 
 #include "QXmppConstants.h"
@@ -38,6 +39,43 @@ static const char* chat_states[] = {
     "paused",
 };
 
+static const char* message_types[] = {
+    "error",
+    "normal",
+    "chat",
+    "groupchat",
+    "headline"
+};
+
+static const char *ns_xhtml = "http://www.w3.org/1999/xhtml";
+
+enum StampType
+{
+    LegacyDelayedDelivery,  // XEP-0091: Legacy Delayed Delivery
+    DelayedDelivery,        // XEP-0203: Delayed Delivery
+};
+
+class QXmppMessagePrivate : public QSharedData
+{
+public:
+    QXmppMessage::Type type;
+    QDateTime stamp;
+    StampType stampType;
+    QXmppMessage::State state;
+
+    bool attentionRequested;
+    QString body;
+    QString subject;
+    QString thread;
+
+    // XEP-0071: XHTML-IM
+    QString xhtml;
+
+    // Request message receipt as per XEP-0184.
+    QString receiptId;
+    bool receiptRequested;
+};
+
 /// Constructs a QXmppMessage.
 ///
 /// \param from
@@ -47,14 +85,23 @@ static const char* chat_states[] = {
 
 QXmppMessage::QXmppMessage(const QString& from, const QString& to, const
                          QString& body, const QString& thread)
-    : QXmppStanza(from, to),
-      m_type(Chat),
-      m_stampType(QXmppMessage::DelayedDelivery),
-      m_state(None),
-      m_attentionRequested(false),
-      m_body(body),
-      m_thread(thread),
-      m_receiptRequested(false)
+    : QXmppStanza(from, to)
+    , d(new QXmppMessagePrivate)
+{
+    d->type = Chat;
+    d->stampType = DelayedDelivery;
+    d->state = None;
+    d->attentionRequested = false;
+    d->body = body;
+    d->thread = thread;
+    d->receiptRequested = false;
+}
+
+/// Constructs a copy of \a other.
+
+QXmppMessage::QXmppMessage(const QXmppMessage &other)
+    : QXmppStanza(other)
+    , d(other.d)
 {
 }
 
@@ -63,12 +110,21 @@ QXmppMessage::~QXmppMessage()
 
 }
 
+/// Assigns \a other to this message.
+
+QXmppMessage& QXmppMessage::operator=(const QXmppMessage &other)
+{
+    QXmppStanza::operator=(other);
+    d = other.d;
+    return *this;
+}
+
 /// Returns the message's body.
 ///
 
 QString QXmppMessage::body() const
 {
-    return m_body;
+    return d->body;
 }
 
 /// Sets the message's body.
@@ -77,7 +133,7 @@ QString QXmppMessage::body() const
 
 void QXmppMessage::setBody(const QString& body)
 {
-    m_body = body;
+    d->body = body;
 }
 
 /// Returns true if the user's attention is requested, as defined
@@ -85,7 +141,7 @@ void QXmppMessage::setBody(const QString& body)
 
 bool QXmppMessage::isAttentionRequested() const
 {
-    return m_attentionRequested;
+    return d->attentionRequested;
 }
 
 /// Sets whether the user's attention is requested, as defined
@@ -95,7 +151,7 @@ bool QXmppMessage::isAttentionRequested() const
 
 void QXmppMessage::setAttentionRequested(bool requested)
 {
-    m_attentionRequested = requested;
+    d->attentionRequested = requested;
 }
 
 /// Returns true if a delivery receipt is requested, as defined
@@ -103,7 +159,7 @@ void QXmppMessage::setAttentionRequested(bool requested)
 
 bool QXmppMessage::isReceiptRequested() const
 {
-    return m_receiptRequested;
+    return d->receiptRequested;
 }
 
 /// Sets whether a delivery receipt is requested, as defined
@@ -113,7 +169,7 @@ bool QXmppMessage::isReceiptRequested() const
 
 void QXmppMessage::setReceiptRequested(bool requested)
 {
-    m_receiptRequested = requested;
+    d->receiptRequested = requested;
     if (requested && id().isEmpty())
         generateAndSetNextId();
 }
@@ -123,7 +179,7 @@ void QXmppMessage::setReceiptRequested(bool requested)
 
 QString QXmppMessage::receiptId() const
 {
-    return m_receiptId;
+    return d->receiptId;
 }
 
 /// Make this message a delivery receipt for the message with
@@ -131,7 +187,7 @@ QString QXmppMessage::receiptId() const
 
 void QXmppMessage::setReceiptId(const QString &id)
 {
-    m_receiptId = id;
+    d->receiptId = id;
 }
 
 /// Returns the message's type.
@@ -139,27 +195,7 @@ void QXmppMessage::setReceiptId(const QString &id)
 
 QXmppMessage::Type QXmppMessage::type() const
 {
-    return m_type;
-}
-
-QString QXmppMessage::getTypeStr() const
-{
-    switch(m_type)
-    {
-    case QXmppMessage::Error:
-        return "error";
-    case QXmppMessage::Normal:
-        return "normal";
-    case QXmppMessage::Chat:
-        return "chat";
-    case QXmppMessage::GroupChat:
-        return "groupchat";
-    case QXmppMessage::Headline:
-        return "headline";
-    default:
-        qWarning("QXmppMessage::getTypeStr() invalid type %d", (int)m_type);
-        return "";
-    }
+    return d->type;
 }
 
 /// Sets the message's type.
@@ -168,55 +204,14 @@ QString QXmppMessage::getTypeStr() const
 
 void QXmppMessage::setType(QXmppMessage::Type type)
 {
-    m_type = type;
-}
-
-void QXmppMessage::setTypeFromStr(const QString& str)
-{
-    if(str == "error")
-    {
-        setType(QXmppMessage::Error);
-        return;
-    }
-    else if(str == "")   // if no type is specified
-    {
-        setType(QXmppMessage::Normal);
-        return;
-    }
-    else if(str == "normal")
-    {
-        setType(QXmppMessage::Normal);
-        return;
-    }
-    else if(str == "chat")
-    {
-        setType(QXmppMessage::Chat);
-        return;
-    }
-    else if(str == "groupchat")
-    {
-        setType(QXmppMessage::GroupChat);
-        return;
-    }
-    else if(str == "headline")
-    {
-        setType(QXmppMessage::Headline);
-        return;
-    }
-    else
-    {
-        setType(static_cast<QXmppMessage::Type>(-1));
-        qWarning("QXmppMessage::setTypeFromStr() invalid input string type: %s",
-                 qPrintable(str));
-        return;
-    }
+    d->type = type;
 }
 
 /// Returns the message's timestamp (if any).
 
 QDateTime QXmppMessage::stamp() const
 {
-    return m_stamp;
+    return d->stamp;
 }
 
 /// Sets the message's timestamp.
@@ -225,7 +220,7 @@ QDateTime QXmppMessage::stamp() const
 
 void QXmppMessage::setStamp(const QDateTime &stamp)
 {
-    m_stamp = stamp;
+    d->stamp = stamp;
 }
 
 /// Returns the message's chat state.
@@ -233,7 +228,7 @@ void QXmppMessage::setStamp(const QDateTime &stamp)
 
 QXmppMessage::State QXmppMessage::state() const
 {
-    return m_state;
+    return d->state;
 }
 
 /// Sets the message's chat state.
@@ -242,17 +237,75 @@ QXmppMessage::State QXmppMessage::state() const
 
 void QXmppMessage::setState(QXmppMessage::State state)
 {
-    m_state = state;
+    d->state = state;
 }
 
+/// Returns the message's subject.
+///
+
+QString QXmppMessage::subject() const
+{
+    return d->subject;
+}
+
+/// Sets the message's subject.
+///
+/// \param subject
+
+void QXmppMessage::setSubject(const QString& subject)
+{
+    d->subject = subject;
+}
+
+/// Returns the message's thread.
+
+QString QXmppMessage::thread() const
+{
+    return d->thread;
+}
+
+/// Sets the message's thread.
+///
+/// \param thread
+
+void QXmppMessage::setThread(const QString& thread)
+{
+    d->thread = thread;
+}
+
+/// Returns the message's XHTML body as defined by
+/// XEP-0071: XHTML-IM.
+
+QString QXmppMessage::xhtml() const
+{
+    return d->xhtml;
+}
+
+/// Sets the message's XHTML body as defined by
+/// XEP-0071: XHTML-IM.
+
+void QXmppMessage::setXhtml(const QString &xhtml)
+{
+    d->xhtml = xhtml;
+}
+
+/// \cond
 void QXmppMessage::parse(const QDomElement &element)
 {
     QXmppStanza::parse(element);
 
-    setTypeFromStr(element.attribute("type"));
-    m_body = element.firstChildElement("body").text();
-    m_subject = element.firstChildElement("subject").text();
-    m_thread = element.firstChildElement("thread").text();
+    const QString type = element.attribute("type");
+    d->type = Normal;
+    for (int i = Error; i <= Headline; i++) {
+        if (type == message_types[i]) {
+            d->type = static_cast<Type>(i);
+            break;
+        }
+    }
+
+    d->body = element.firstChildElement("body").text();
+    d->subject = element.firstChildElement("subject").text();
+    d->thread = element.firstChildElement("thread").text();
 
     // chat states
     for (int i = Active; i <= Paused; i++)
@@ -261,35 +314,50 @@ void QXmppMessage::parse(const QDomElement &element)
         if (!stateElement.isNull() &&
             stateElement.namespaceURI() == ns_chat_states)
         {
-            m_state = static_cast<QXmppMessage::State>(i);
+            d->state = static_cast<QXmppMessage::State>(i);
             break;
+        }
+    }
+
+    // XEP-0071: XHTML-IM
+    QDomElement htmlElement = element.firstChildElement("html");
+    if (!htmlElement.isNull() && htmlElement.namespaceURI() == ns_xhtml_im) {
+        QDomElement bodyElement = htmlElement.firstChildElement("body");
+        if (!bodyElement.isNull() && bodyElement.namespaceURI() == ns_xhtml) {
+            QTextStream stream(&d->xhtml, QIODevice::WriteOnly);
+            bodyElement.save(stream, 0);
+
+            d->xhtml = d->xhtml.mid(d->xhtml.indexOf('>') + 1);
+            d->xhtml.replace(" xmlns=\"http://www.w3.org/1999/xhtml\"", "");
+            d->xhtml.replace("</body>", "");
+            d->xhtml = d->xhtml.trimmed();
         }
     }
 
     // XEP-0184: Message Delivery Receipts
     QDomElement receivedElement = element.firstChildElement("received");
     if (!receivedElement.isNull() && receivedElement.namespaceURI() == ns_message_receipts) {
-        m_receiptId = receivedElement.attribute("id");
+        d->receiptId = receivedElement.attribute("id");
 
         // compatibility with old-style XEP
-        if (m_receiptId.isEmpty())
-            m_receiptId = id();
+        if (d->receiptId.isEmpty())
+            d->receiptId = id();
     } else {
-        m_receiptId = QString();
+        d->receiptId = QString();
     }
-    m_receiptRequested = element.firstChildElement("request").namespaceURI() == ns_message_receipts;
+    d->receiptRequested = element.firstChildElement("request").namespaceURI() == ns_message_receipts;
 
     // XEP-0203: Delayed Delivery
     QDomElement delayElement = element.firstChildElement("delay");
     if (!delayElement.isNull() && delayElement.namespaceURI() == ns_delayed_delivery)
     {
         const QString str = delayElement.attribute("stamp");
-        m_stamp = datetimeFromString(str);
-        m_stampType = QXmppMessage::DelayedDelivery;
+        d->stamp = QXmppUtils::datetimeFromString(str);
+        d->stampType = DelayedDelivery;
     }
 
     // XEP-0224: Attention
-    m_attentionRequested = element.firstChildElement("attention").namespaceURI() == ns_attention;
+    d->attentionRequested = element.firstChildElement("attention").namespaceURI() == ns_attention;
 
     QXmppElementList extensions;
     QDomElement xElement = element.firstChildElement("x");
@@ -299,9 +367,9 @@ void QXmppMessage::parse(const QDomElement &element)
         {
             // XEP-0091: Legacy Delayed Delivery
             const QString str = xElement.attribute("stamp");
-            m_stamp = QDateTime::fromString(str, "yyyyMMddThh:mm:ss");
-            m_stamp.setTimeSpec(Qt::UTC);
-            m_stampType = QXmppMessage::LegacyDelayedDelivery;
+            d->stamp = QDateTime::fromString(str, "yyyyMMddThh:mm:ss");
+            d->stamp.setTimeSpec(Qt::UTC);
+            d->stampType = LegacyDelayedDelivery;
         } else {
             // other extensions
             extensions << QXmppElement(xElement);
@@ -313,39 +381,50 @@ void QXmppMessage::parse(const QDomElement &element)
 
 void QXmppMessage::toXml(QXmlStreamWriter *xmlWriter) const
 {
-
     xmlWriter->writeStartElement("message");
     helperToXmlAddAttribute(xmlWriter, "xml:lang", lang());
     helperToXmlAddAttribute(xmlWriter, "id", id());
     helperToXmlAddAttribute(xmlWriter, "to", to());
     helperToXmlAddAttribute(xmlWriter, "from", from());
-    helperToXmlAddAttribute(xmlWriter, "type", getTypeStr());
-    if (!m_subject.isEmpty())
-        helperToXmlAddTextElement(xmlWriter, "subject", m_subject);
-    if (!m_body.isEmpty())
-        helperToXmlAddTextElement(xmlWriter, "body", m_body);
-    if (!m_thread.isEmpty())
-        helperToXmlAddTextElement(xmlWriter, "thread", m_thread);
+    helperToXmlAddAttribute(xmlWriter, "type", message_types[d->type]);
+    if (!d->subject.isEmpty())
+        helperToXmlAddTextElement(xmlWriter, "subject", d->subject);
+    if (!d->body.isEmpty())
+        helperToXmlAddTextElement(xmlWriter, "body", d->body);
+    if (!d->thread.isEmpty())
+        helperToXmlAddTextElement(xmlWriter, "thread", d->thread);
     error().toXml(xmlWriter);
 
     // chat states
-    if (m_state > None && m_state <= Paused)
+    if (d->state > None && d->state <= Paused)
     {
-        xmlWriter->writeStartElement(chat_states[m_state]);
+        xmlWriter->writeStartElement(chat_states[d->state]);
         xmlWriter->writeAttribute("xmlns", ns_chat_states);
         xmlWriter->writeEndElement();
     }
 
+    // XEP-0071: XHTML-IM
+    if (!d->xhtml.isEmpty()) {
+        xmlWriter->writeStartElement("html");
+        xmlWriter->writeAttribute("xmlns", ns_xhtml_im);
+        xmlWriter->writeStartElement("body");
+        xmlWriter->writeAttribute("xmlns", ns_xhtml);
+        xmlWriter->writeCharacters("");
+        xmlWriter->device()->write(d->xhtml.toUtf8());
+        xmlWriter->writeEndElement();
+        xmlWriter->writeEndElement();
+    }
+
     // time stamp
-    if (m_stamp.isValid())
+    if (d->stamp.isValid())
     {
-        QDateTime utcStamp = m_stamp.toUTC();
-        if (m_stampType == QXmppMessage::DelayedDelivery)
+        QDateTime utcStamp = d->stamp.toUTC();
+        if (d->stampType == DelayedDelivery)
         {
             // XEP-0203: Delayed Delivery
             xmlWriter->writeStartElement("delay");
             xmlWriter->writeAttribute("xmlns", ns_delayed_delivery);
-            helperToXmlAddAttribute(xmlWriter, "stamp", datetimeToString(utcStamp));
+            helperToXmlAddAttribute(xmlWriter, "stamp", QXmppUtils::datetimeToString(utcStamp));
             xmlWriter->writeEndElement();
         } else {
             // XEP-0091: Legacy Delayed Delivery
@@ -357,61 +436,28 @@ void QXmppMessage::toXml(QXmlStreamWriter *xmlWriter) const
     }
 
     // XEP-0184: Message Delivery Receipts
-    if (!m_receiptId.isEmpty()) {
+    if (!d->receiptId.isEmpty()) {
         xmlWriter->writeStartElement("received");
         xmlWriter->writeAttribute("xmlns", ns_message_receipts);
-        xmlWriter->writeAttribute("id", m_receiptId);
+        xmlWriter->writeAttribute("id", d->receiptId);
         xmlWriter->writeEndElement();
     }
-    if (m_receiptRequested) {
+    if (d->receiptRequested) {
         xmlWriter->writeStartElement("request");
         xmlWriter->writeAttribute("xmlns", ns_message_receipts);
         xmlWriter->writeEndElement();
     }
 
     // XEP-0224: Attention
-    if (m_attentionRequested) {
+    if (d->attentionRequested) {
         xmlWriter->writeStartElement("attention");
         xmlWriter->writeAttribute("xmlns", ns_attention);
         xmlWriter->writeEndElement();
     }
 
     // other extensions
-    foreach (const QXmppElement &extension, extensions())
-        extension.toXml(xmlWriter);
+    QXmppStanza::extensionsToXml(xmlWriter);
+
     xmlWriter->writeEndElement();
 }
-
-/// Returns the message's subject.
-///
-
-QString QXmppMessage::subject() const
-{
-    return m_subject;
-}
-
-/// Sets the message's subject.
-///
-/// \param subject
-
-void QXmppMessage::setSubject(const QString& subject)
-{
-    m_subject = subject;
-}
-
-/// Returns the message's thread.
-
-QString QXmppMessage::thread() const
-{
-    return m_thread;
-}
-
-/// Sets the message's thread.
-///
-/// \param thread
-
-void QXmppMessage::setThread(const QString& thread)
-{
-    m_thread = thread;
-}
-
+/// \endcond

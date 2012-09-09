@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
@@ -28,48 +28,36 @@
 
 #include "QXmppClient.h"
 #include "QXmppConstants.h"
+#include "QXmppDataForm.h"
 #include "QXmppDiscoveryIq.h"
 #include "QXmppStream.h"
 #include "QXmppGlobal.h"
 
-QXmppDiscoveryManager::QXmppDiscoveryManager() : QXmppClientExtension(),
-    m_clientCapabilitiesNode("http://code.google.com/p/qxmpp"),
-    m_clientCategory("client"),
-    m_clientType("pc"),
-    m_clientName(QString("%1 %2").arg(qApp->applicationName(), qApp->applicationVersion()))
+class QXmppDiscoveryManagerPrivate
 {
-    if(qApp->applicationName().isEmpty() && qApp->applicationVersion().isEmpty())
-    {
-        m_clientName = QString("%1 %2").arg("Based on QXmpp", QXmppVersion());
-    }
+public:
+    QString clientCapabilitiesNode;
+    QString clientCategory;
+    QString clientType;
+    QString clientName;
+    QXmppDataForm clientInfoForm;
+};
+
+QXmppDiscoveryManager::QXmppDiscoveryManager()
+    : d(new QXmppDiscoveryManagerPrivate)
+{
+    d->clientCapabilitiesNode = "http://code.google.com/p/qxmpp";
+    d->clientCategory = "client";
+    d->clientType = "pc";
+    if (qApp->applicationName().isEmpty() && qApp->applicationVersion().isEmpty())
+        d->clientName = QString("%1 %2").arg("Based on QXmpp", QXmppVersion());
+    else
+        d->clientName = QString("%1 %2").arg(qApp->applicationName(), qApp->applicationVersion());
 }
 
-bool QXmppDiscoveryManager::handleStanza(const QDomElement &element)
+QXmppDiscoveryManager::~QXmppDiscoveryManager()
 {
-    if (element.tagName() == "iq" && QXmppDiscoveryIq::isDiscoveryIq(element))
-    {
-        QXmppDiscoveryIq receivedIq;
-        receivedIq.parse(element);
-
-        if(receivedIq.type() == QXmppIq::Get &&
-           receivedIq.queryType() == QXmppDiscoveryIq::InfoQuery &&
-           (receivedIq.queryNode().isEmpty() || receivedIq.queryNode().startsWith(m_clientCapabilitiesNode)))
-        {
-            // respond to query
-            QXmppDiscoveryIq qxmppFeatures = capabilities();
-            qxmppFeatures.setId(receivedIq.id());
-            qxmppFeatures.setTo(receivedIq.from());
-            qxmppFeatures.setQueryNode(receivedIq.queryNode());
-            client()->sendPacket(qxmppFeatures);
-        }
-        else if(receivedIq.queryType() == QXmppDiscoveryIq::InfoQuery)
-            emit infoReceived(receivedIq);
-        else if(receivedIq.queryType() == QXmppDiscoveryIq::ItemsQuery)
-            emit itemsReceived(receivedIq);
-
-        return true;
-    }
-    return false;
+    delete d;
 }
 
 /// Requests information from the specified XMPP entity.
@@ -110,10 +98,7 @@ QString QXmppDiscoveryManager::requestItems(const QString& jid, const QString& n
         return QString();
 }
 
-QStringList QXmppDiscoveryManager::discoveryFeatures() const
-{
-    return QStringList() << ns_disco_info;
-}
+/// Returns the client's full capabilities.
 
 QXmppDiscoveryIq QXmppDiscoveryManager::capabilities()
 {
@@ -124,8 +109,11 @@ QXmppDiscoveryIq QXmppDiscoveryManager::capabilities()
     // features
     QStringList features;
     features
+        << ns_data              // XEP-0004: Data Forms
+        << ns_rsm               // XEP-0059: Result Set Management
+        << ns_xhtml_im          // XEP-0071: XHTML-IM
         << ns_chat_states       // XEP-0085: Chat State Notifications
-        << ns_capabilities      // XEP-0115 : Entity Capabilities
+        << ns_capabilities      // XEP-0115: Entity Capabilities
         << ns_ping              // XEP-0199: XMPP Ping
         << ns_attention;        // XEP-0224: Attention
 
@@ -153,6 +141,11 @@ QXmppDiscoveryIq QXmppDiscoveryManager::capabilities()
     }
 
     iq.setIdentities(identities);
+
+    // extended information
+    if (!d->clientInfoForm.isNull())
+        iq.setForm(d->clientInfoForm);
+
     return iq;
 }
 
@@ -162,7 +155,7 @@ QXmppDiscoveryIq QXmppDiscoveryManager::capabilities()
 
 void QXmppDiscoveryManager::setClientCapabilitiesNode(const QString &node)
 {
-    m_clientCapabilitiesNode = node;
+    d->clientCapabilitiesNode = node;
 }
 
 /// Sets the category of the local XMPP client.
@@ -174,7 +167,7 @@ void QXmppDiscoveryManager::setClientCapabilitiesNode(const QString &node)
 
 void QXmppDiscoveryManager::setClientCategory(const QString& category)
 {
-    m_clientCategory = category;
+    d->clientCategory = category;
 }
 
 /// Sets the type of the local XMPP client.
@@ -186,7 +179,7 @@ void QXmppDiscoveryManager::setClientCategory(const QString& category)
 
 void QXmppDiscoveryManager::setClientType(const QString& type)
 {
-    m_clientType = type;
+    d->clientType = type;
 }
 
 /// Sets the name of the local XMPP client.
@@ -195,7 +188,7 @@ void QXmppDiscoveryManager::setClientType(const QString& type)
 
 void QXmppDiscoveryManager::setClientName(const QString& name)
 {
-    m_clientName = name;
+    d->clientName = name;
 }
 
 /// Returns the capabilities node of the local XMPP client.
@@ -204,7 +197,7 @@ void QXmppDiscoveryManager::setClientName(const QString& name)
 
 QString QXmppDiscoveryManager::clientCapabilitiesNode() const
 {
-    return m_clientCapabilitiesNode;
+    return d->clientCapabilitiesNode;
 }
 
 /// Returns the category of the local XMPP client.
@@ -213,7 +206,7 @@ QString QXmppDiscoveryManager::clientCapabilitiesNode() const
 
 QString QXmppDiscoveryManager::clientCategory() const
 {
-    return m_clientCategory;
+    return d->clientCategory;
 }
 
 /// Returns the type of the local XMPP client.
@@ -222,7 +215,7 @@ QString QXmppDiscoveryManager::clientCategory() const
 
 QString QXmppDiscoveryManager::clientType() const
 {
-    return m_clientType;
+    return d->clientType;
 }
 
 /// Returns the name of the local XMPP client.
@@ -231,5 +224,71 @@ QString QXmppDiscoveryManager::clientType() const
 
 QString QXmppDiscoveryManager::clientName() const
 {
-    return m_clientName;
+    return d->clientName;
 }
+
+/// Returns the client's extended information form, as defined
+/// by XEP-0128 Service Discovery Extensions.
+
+QXmppDataForm QXmppDiscoveryManager::clientInfoForm() const
+{
+    return d->clientInfoForm;
+}
+
+/// Sets the client's extended information form, as defined
+/// by XEP-0128 Service Discovery Extensions.
+
+void QXmppDiscoveryManager::setClientInfoForm(const QXmppDataForm &form)
+{
+    d->clientInfoForm = form;
+}
+
+/// \cond
+QStringList QXmppDiscoveryManager::discoveryFeatures() const
+{
+    return QStringList() << ns_disco_info;
+}
+
+bool QXmppDiscoveryManager::handleStanza(const QDomElement &element)
+{
+    if (element.tagName() == "iq" && QXmppDiscoveryIq::isDiscoveryIq(element))
+    {
+        QXmppDiscoveryIq receivedIq;
+        receivedIq.parse(element);
+
+        switch (receivedIq.type()) {
+        case QXmppIq::Get:
+            if (receivedIq.queryType() == QXmppDiscoveryIq::InfoQuery &&
+                (receivedIq.queryNode().isEmpty() ||
+                 receivedIq.queryNode().startsWith(d->clientCapabilitiesNode))) {
+
+                // respond to info queries for the client itself
+                QXmppDiscoveryIq qxmppFeatures = capabilities();
+                qxmppFeatures.setId(receivedIq.id());
+                qxmppFeatures.setTo(receivedIq.from());
+                qxmppFeatures.setQueryNode(receivedIq.queryNode());
+                client()->sendPacket(qxmppFeatures);
+                return true;
+            } else {
+                // let other managers handle other queries
+                return false;
+            }
+
+        case QXmppIq::Result:
+        case QXmppIq::Error:
+            // handle all replies
+            if (receivedIq.queryType() == QXmppDiscoveryIq::InfoQuery) {
+                emit infoReceived(receivedIq);
+            } else if (receivedIq.queryType() == QXmppDiscoveryIq::ItemsQuery) {
+                emit itemsReceived(receivedIq);
+            }
+            return true;
+
+        case QXmppIq::Set:
+            // let other manager handle "set" IQs
+            return false;
+        }
+    }
+    return false;
+}
+/// \endcond

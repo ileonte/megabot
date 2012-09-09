@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -202,15 +202,47 @@ QByteArray QXmppDiscoveryIq::verificationString() const
     qSort(sortedIdentities.begin(), sortedIdentities.end(), identityLessThan);
     QStringList sortedFeatures = m_features;
     qSort(sortedFeatures);
+    sortedFeatures.removeDuplicates();
     foreach (const QXmppDiscoveryIq::Identity &identity, sortedIdentities)
         S += QString("%1/%2/%3/%4<").arg(identity.category(), identity.type(), identity.language(), identity.name());
     foreach (const QString &feature, sortedFeatures)
         S += feature + QLatin1String("<");
+
+    if (!m_form.isNull()) {
+        QMap<QString, QXmppDataForm::Field> fieldMap;
+        foreach (const QXmppDataForm::Field &field, m_form.fields()) {
+            fieldMap.insert(field.key(), field);
+        }
+
+        if (fieldMap.contains("FORM_TYPE")) {
+            const QXmppDataForm::Field field = fieldMap.take("FORM_TYPE");
+            S += field.value().toString() + QLatin1String("<");
+
+            QStringList keys = fieldMap.keys();
+            qSort(keys);
+            foreach (const QString &key, keys) {
+                const QXmppDataForm::Field field = fieldMap.value(key);
+                S += key + QLatin1String("<");
+                if (field.value().canConvert<QStringList>()) {
+                    QStringList list = field.value().toStringList();
+                    list.sort();
+                    S += list.join(QLatin1String("<"));
+                } else {
+                    S += field.value().toString();
+                }
+                S += QLatin1String("<");
+            }
+        } else {
+            qWarning("QXmppDiscoveryIq form does not contain FORM_TYPE");
+        }
+    }
+
     QCryptographicHash hasher(QCryptographicHash::Sha1);
     hasher.addData(S.toUtf8());
     return hasher.result();
 }
 
+/// \cond
 bool QXmppDiscoveryIq::isDiscoveryIq(const QDomElement &element)
 {
     QDomElement queryElement = element.firstChildElement("query");
@@ -241,6 +273,17 @@ void QXmppDiscoveryIq::parseElementFromChild(const QDomElement &element)
             identity.setCategory(itemElement.attribute("category"));
             identity.setName(itemElement.attribute("name"));
             identity.setType(itemElement.attribute("type"));
+
+            // FIXME: for some reason the language does not found,
+            // so we are forced to use QDomNamedNodeMap
+            QDomNamedNodeMap m(itemElement.attributes());
+            for (int i = 0; i < m.size(); ++i) {
+                if (m.item(i).nodeName() == "xml:lang") {
+                    identity.setLanguage(m.item(i).nodeValue());
+                    break;
+                }
+            }
+
             m_identities.append(identity);
         }
         else if (itemElement.tagName() == "item")
@@ -267,34 +310,33 @@ void QXmppDiscoveryIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
         m_queryType == InfoQuery ? ns_disco_info : ns_disco_items);
     helperToXmlAddAttribute(writer, "node", m_queryNode);
 
-    foreach (const QString &feature, m_features)
-    {
-        writer->writeStartElement("feature");
-        helperToXmlAddAttribute(writer, "var", feature);
-        writer->writeEndElement();
-    }
+    if (m_queryType == InfoQuery) {
+        foreach (const QXmppDiscoveryIq::Identity& identity, m_identities) {
+            writer->writeStartElement("identity");
+            helperToXmlAddAttribute(writer, "xml:lang", identity.language());
+            helperToXmlAddAttribute(writer, "category", identity.category());
+            helperToXmlAddAttribute(writer, "name", identity.name());
+            helperToXmlAddAttribute(writer, "type", identity.type());
+            writer->writeEndElement();
+        }
 
-    foreach (const QXmppDiscoveryIq::Identity& identity, m_identities)
-    {
-        writer->writeStartElement("identity");
-        helperToXmlAddAttribute(writer, "xml:lang", identity.language());
-        helperToXmlAddAttribute(writer, "category", identity.category());
-        helperToXmlAddAttribute(writer, "name", identity.name());
-        helperToXmlAddAttribute(writer, "type", identity.type());
-        writer->writeEndElement();
-    }
-
-    foreach (const QXmppDiscoveryIq::Item& item, m_items)
-    {
-        writer->writeStartElement("item");
-        helperToXmlAddAttribute(writer, "jid", item.jid());
-        helperToXmlAddAttribute(writer, "name", item.name());
-        helperToXmlAddAttribute(writer, "node", item.node());
-        writer->writeEndElement();
+        foreach (const QString &feature, m_features) {
+            writer->writeStartElement("feature");
+            helperToXmlAddAttribute(writer, "var", feature);
+            writer->writeEndElement();
+        }
+    } else {
+        foreach (const QXmppDiscoveryIq::Item& item, m_items) {
+            writer->writeStartElement("item");
+            helperToXmlAddAttribute(writer, "jid", item.jid());
+            helperToXmlAddAttribute(writer, "name", item.name());
+            helperToXmlAddAttribute(writer, "node", item.node());
+            writer->writeEndElement();
+        }
     }
 
     m_form.toXml(writer);
 
     writer->writeEndElement();
 }
-
+/// \endcond

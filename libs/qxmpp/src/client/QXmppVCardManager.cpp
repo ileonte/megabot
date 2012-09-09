@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
@@ -25,40 +25,25 @@
 #include "QXmppClient.h"
 #include "QXmppConstants.h"
 #include "QXmppUtils.h"
+#include "QXmppVCardIq.h"
 #include "QXmppVCardManager.h"
 
+class QXmppVCardManagerPrivate
+{
+public:
+    QXmppVCardIq clientVCard;
+    bool isClientVCardReceived;
+};
+
 QXmppVCardManager::QXmppVCardManager()
-    : QXmppClientExtension(),
-    m_isClientVCardReceived(false)
+    : d(new QXmppVCardManagerPrivate)
 {
+    d->isClientVCardReceived = false;
 }
 
-QStringList QXmppVCardManager::discoveryFeatures() const
+QXmppVCardManager::~QXmppVCardManager()
 {
-    // XEP-0054: vcard-temp
-    return QStringList() << ns_vcard;
-}
-
-bool QXmppVCardManager::handleStanza(const QDomElement &element)
-{
-    if(element.tagName() == "iq" && QXmppVCardIq::isVCard(element))
-    {
-        QXmppVCardIq vCardIq;
-        vCardIq.parse(element);
-
-        if(vCardIq.from().isEmpty())
-        {
-            m_clientVCard = vCardIq;
-            m_isClientVCardReceived = true;
-            emit clientVCardReceived();
-        }
-
-        emit vCardReceived(vCardIq);
-
-        return true;
-    }
-
-    return false;
+    delete d;
 }
 
 /// This function requests the server for vCard of the specified jid.
@@ -81,7 +66,7 @@ QString QXmppVCardManager::requestVCard(const QString& jid)
 ///
 const QXmppVCardIq& QXmppVCardManager::clientVCard() const
 {
-    return m_clientVCard;
+    return d->clientVCard;
 }
 
 /// Sets the vCard of the connected client.
@@ -90,11 +75,11 @@ const QXmppVCardIq& QXmppVCardManager::clientVCard() const
 ///
 void QXmppVCardManager::setClientVCard(const QXmppVCardIq& clientVCard)
 {
-    m_clientVCard = clientVCard;
-    m_clientVCard.setTo("");
-    m_clientVCard.setFrom("");
-    m_clientVCard.setType(QXmppIq::Set);
-    client()->sendPacket(m_clientVCard);
+    d->clientVCard = clientVCard;
+    d->clientVCard.setTo("");
+    d->clientVCard.setFrom("");
+    d->clientVCard.setType(QXmppIq::Set);
+    client()->sendPacket(d->clientVCard);
 }
 
 /// This function requests the server for vCard of the connected user itself.
@@ -112,5 +97,34 @@ QString QXmppVCardManager::requestClientVCard()
 ///
 bool QXmppVCardManager::isClientVCardReceived() const
 {
-    return m_isClientVCardReceived;
+    return d->isClientVCardReceived;
 }
+
+/// \cond
+QStringList QXmppVCardManager::discoveryFeatures() const
+{
+    // XEP-0054: vcard-temp
+    return QStringList() << ns_vcard;
+}
+
+bool QXmppVCardManager::handleStanza(const QDomElement &element)
+{
+    if(element.tagName() == "iq" && QXmppVCardIq::isVCard(element))
+    {
+        QXmppVCardIq vCardIq;
+        vCardIq.parse(element);
+
+        if (vCardIq.from().isEmpty()) {
+            d->clientVCard = vCardIq;
+            d->isClientVCardReceived = true;
+            emit clientVCardReceived();
+        }
+
+        emit vCardReceived(vCardIq);
+
+        return true;
+    }
+
+    return false;
+}
+/// \endcond

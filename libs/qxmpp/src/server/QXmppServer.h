@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -56,7 +56,7 @@ class QXmppStream;
 ///
 /// \ingroup Core
 
-class QXmppServer : public QXmppLoggable
+class QXMPP_EXPORT QXmppServer : public QXmppLoggable
 {
     Q_OBJECT
 
@@ -89,11 +89,7 @@ public:
     bool sendElement(const QDomElement &element);
     bool sendPacket(const QXmppStanza &stanza);
 
-    /// \cond
-    // FIXME: this method should not be public, but it is needed to
-    // implement BOSH support as an extension.
     void addIncomingClient(QXmppIncomingClient *stream);
-    /// \endcond
 
 signals:
     /// This signal is emitted when a client has connected.
@@ -124,7 +120,7 @@ class QXmppSslServerPrivate;
 /// \brief The QXmppSslServer class represents an SSL-enabled TCP server.
 ///
 
-class QXmppSslServer : public QTcpServer
+class QXMPP_EXPORT QXmppSslServer : public QTcpServer
 {
     Q_OBJECT
 

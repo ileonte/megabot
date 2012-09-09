@@ -15,8 +15,23 @@ The project uses qmake build system of Qt.
 Building from the command line:
 
 cd <where qxmpp.pro is located>
-qmake
+qmake <arguments>
 <respective-make-cmd = gmake, make, mingw32-make, nmake>
+
+You can pass the following arguments to qmake:
+
+  PREFIX=<prefix>               to change the install prefix
+                                default:
+                                    unix:  /usr/local on unix
+                                    other: $$[QT_INSTALL_PREFIX]
+  QXMPP_LIBRARY_TYPE=staticlib  to build a static version of QXmpp
+  QXMPP_USE_SPEEX=1             to enable speex audio codec
+  QXMPP_USE_THEORA=1            to enable theora video codec
+  QXMPP_USE_VPX=1               to enable vpx video codec
+
+Note: by default QXmpp is built as a shared library. If you decide to build
+a static library instead, you will need to pass -DQXMPP_STATIC when building
+your programs against QXmpp.
 
 Building using Qt Creator:
 
@@ -33,18 +48,13 @@ Installing from the command line:
 <respective-make-cmd = gmake, make, mingw32-make, nmake> install
 
 Path of installations:
-    Linux:
-    -----
-    Headers:            /usr/include/qxmpp
-    Static Library:     /usr/lib
-    API Documentation:  /usr/share/doc/qxmpp
 
-    Windows: [Note much of use though]
-    -----
-    Headers:            %QTDIR%\include\qxmpp
-    Static Library:     %QTDIR%\lib
-    API Documentation:  %QTDIR%\share\doc\qxmpp\html
+    Headers:            PREFIX/include/qxmpp
+    Library:            PREFIX/lib
+    API Documentation:  PREFIX/share/doc/qxmpp
 
+To link against the shared version of QXmpp, you need to add -DQXMPP_SHARED
+to your C++ flags.
 
 EXAMPLES
 --------
@@ -89,7 +99,7 @@ For this release, the following platforms have been tested:
 It should work on all the plaforms supported by Qt. For a complete list of
 platforms support by Qt, see:
 
-http://doc.qt.nokia.com/supported-platforms.html
+http://qt-project.org/doc/supported-platforms.html
 
 Please note that on Symbian, you will need to make sure your add the
 "NetworkServices" to your application to enable it to access the network.

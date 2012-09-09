@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -22,7 +22,6 @@
  */
 
 #include <QDataStream>
-#include <QEventLoop>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTimer>
@@ -195,20 +194,6 @@ void QXmppSocksClient::slotReadyRead()
         // notify of connection
         emit ready();
     }
-}
-
-bool QXmppSocksClient::waitForReady(int msecs)
-{
-    QEventLoop loop;
-    connect(this, SIGNAL(disconnected()), &loop, SLOT(quit()));
-    connect(this, SIGNAL(ready()), &loop, SLOT(quit()));
-    QTimer::singleShot(msecs, &loop, SLOT(quit()));
-    loop.exec();
-
-    if (m_step == ReadyState && isValid())
-        return true;
-    else
-        return false;
 }
 
 QXmppSocksServer::QXmppSocksServer(QObject *parent)

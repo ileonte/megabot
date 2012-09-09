@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
@@ -29,6 +29,7 @@
 #include "QXmppConstants.h"
 #include "QXmppUtils.h"
 
+/// \cond
 bool QXmppSessionIq::isSessionIq(const QDomElement &element)
 {
     QDomElement sessionElement = element.firstChildElement("session");
@@ -41,4 +42,4 @@ void QXmppSessionIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
     writer->writeAttribute("xmlns", ns_session);
     writer->writeEndElement();
 }
-
+/// \endcond

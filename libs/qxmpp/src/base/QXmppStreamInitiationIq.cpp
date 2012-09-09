@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -67,6 +67,7 @@ void QXmppStreamInitiationIq::setSiItems(const QXmppElementList &items)
     m_siItems = items;
 }
 
+/// \cond
 bool QXmppStreamInitiationIq::isStreamInitiationIq(const QDomElement &element)
 {
     QDomElement siElement = element.firstChildElement("si");
@@ -103,4 +104,4 @@ void QXmppStreamInitiationIq::toXmlElementFromChild(QXmlStreamWriter *writer) co
         item.toXml(writer);
     writer->writeEndElement();
 }
-
+/// \endcond

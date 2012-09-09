@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -26,12 +26,14 @@
 
 #include <QObject>
 
+#include "QXmppGlobal.h"
+
 /// \brief The QXmppPasswordRequest class represents a password request.
 ///
-class QXmppPasswordRequest
+class QXMPP_EXPORT QXmppPasswordRequest
 {
 public:
-    // This enum is used to describe request types.
+    /// This enum is used to describe request types.
     enum Type {
         CheckPassword = 0,
     };
@@ -51,9 +53,9 @@ private:
     QString m_username;
 };
 
-/// \brief The QXmppPasswordRequest class represents a password reply.
+/// \brief The QXmppPasswordReply class represents a password reply.
 ///
-class QXmppPasswordReply : public QObject
+class QXMPP_EXPORT QXmppPasswordReply : public QObject
 {
     Q_OBJECT
 
@@ -83,6 +85,7 @@ public slots:
     void finishLater();
 
 signals:
+    /// This signal is emitted when the reply has finished.
     void finished();
 
 private:
@@ -95,7 +98,7 @@ private:
 /// \brief The QXmppPasswordChecker class represents an abstract password checker.
 ///
 
-class QXmppPasswordChecker
+class QXMPP_EXPORT QXmppPasswordChecker
 {
 public:
     virtual QXmppPasswordReply *checkPassword(const QXmppPasswordRequest &request);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
@@ -107,7 +107,10 @@ static quint32 crctable[256] =
     0xB40BBE37L, 0xC30C8EA1L, 0x5A05DF1BL, 0x2D02EF8DL
 };
 
-QDateTime datetimeFromString(const QString &str)
+/// Parses a date-time from a string according to
+/// XEP-0082: XMPP Date and Time Profiles.
+
+QDateTime QXmppUtils::datetimeFromString(const QString &str)
 {
     QRegExp tzRe("(Z|([+-])([0-9]{2}):([0-9]{2}))");
     int tzPos = tzRe.indexIn(str, 19);
@@ -137,7 +140,10 @@ QDateTime datetimeFromString(const QString &str)
     return dt;
 }
 
-QString datetimeToString(const QDateTime &dt)
+/// Serializes a date-time to a string according to
+/// XEP-0082: XMPP Date and Time Profiles.
+
+QString QXmppUtils::datetimeToString(const QDateTime &dt)
 {
     QDateTime utc = dt.toUTC();
     if (utc.time().msec())
@@ -146,12 +152,10 @@ QString datetimeToString(const QDateTime &dt)
         return utc.toString("yyyy-MM-ddThh:mm:ssZ");
 }
 
-/// Parses a timezone offset (in seconds) from a string.
-///
-/// \param str
-///
+/// Parses a timezone offset (in seconds) from a string according to
+/// XEP-0082: XMPP Date and Time Profiles.
 
-int timezoneOffsetFromString(const QString &str)
+int QXmppUtils::timezoneOffsetFromString(const QString &str)
 {
     QRegExp tzRe("(Z|([+-])([0-9]{2}):([0-9]{2}))");
     if (!tzRe.exactMatch(str))
@@ -170,11 +174,10 @@ int timezoneOffsetFromString(const QString &str)
         return offset;
 }
 
-/// Serializes a timezone offset (in seconds) to a string.
-///
-/// \param secs
+/// Serializes a timezone offset (in seconds) to a string according to
+/// XEP-0082: XMPP Date and Time Profiles.
 
-QString timezoneOffsetToString(int secs)
+QString QXmppUtils::timezoneOffsetToString(int secs)
 {
     if (!secs)
         return QString::fromLatin1("Z");
@@ -183,12 +186,16 @@ QString timezoneOffsetToString(int secs)
     return (secs < 0 ? "-" : "+") + tzoTime.toString("hh:mm");
 }
 
-QString jidToDomain(const QString &jid)
+/// Returns the domain for the given \a jid.
+
+QString QXmppUtils::jidToDomain(const QString &jid)
 {
     return jidToBareJid(jid).split("@").last();
 }
 
-QString jidToResource(const QString& jid)
+/// Returns the resource for the given \a jid.
+
+QString QXmppUtils::jidToResource(const QString& jid)
 {
     const int pos = jid.indexOf(QChar('/'));
     if (pos < 0)
@@ -196,7 +203,9 @@ QString jidToResource(const QString& jid)
     return jid.mid(pos+1);
 }
 
-QString jidToUser(const QString &jid)
+/// Returns the user for the given \a jid.
+
+QString QXmppUtils::jidToUser(const QString &jid)
 {
     const int pos = jid.indexOf(QChar('@'));
     if (pos < 0)
@@ -204,7 +213,9 @@ QString jidToUser(const QString &jid)
     return jid.left(pos);
 }
 
-QString jidToBareJid(const QString& jid)
+/// Returns the bare jid (i.e. without resource) for the given \a jid.
+
+QString QXmppUtils::jidToBareJid(const QString& jid)
 {
     const int pos = jid.indexOf(QChar('/'));
     if (pos < 0)
@@ -212,7 +223,9 @@ QString jidToBareJid(const QString& jid)
     return jid.left(pos);
 }
 
-quint32 generateCrc32(const QByteArray &in)
+/// Calculates the CRC32 checksum for the given input.
+
+quint32 QXmppUtils::generateCrc32(const QByteArray &in)
 {
     quint32 result = 0xffffffff;
     for(int n = 0; n < in.size(); ++n)
@@ -243,12 +256,16 @@ static QByteArray generateHmac(QCryptographicHash::Algorithm algorithm, const QB
     return hasher.result();
 }
 
-QByteArray generateHmacMd5(const QByteArray &key, const QByteArray &text)
+/// Generates the MD5 HMAC for the given \a key and \a text.
+
+QByteArray QXmppUtils::generateHmacMd5(const QByteArray &key, const QByteArray &text)
 {
     return generateHmac(QCryptographicHash::Md5, key, text);
 }
 
-QByteArray generateHmacSha1(const QByteArray &key, const QByteArray &text)
+/// Generates the SHA1 HMAC for the given \a key and \a text.
+
+QByteArray QXmppUtils::generateHmacSha1(const QByteArray &key, const QByteArray &text)
 {
     return generateHmac(QCryptographicHash::Sha1, key, text);
 }
@@ -257,7 +274,7 @@ QByteArray generateHmacSha1(const QByteArray &key, const QByteArray &text)
 ///
 /// \param N
 
-int generateRandomInteger(int N)
+int QXmppUtils::generateRandomInteger(int N)
 {
     Q_ASSERT(N > 0 && N <= RAND_MAX);
     int val;
@@ -269,7 +286,7 @@ int generateRandomInteger(int N)
 ///
 /// \param length
 
-QByteArray generateRandomBytes(int length)
+QByteArray QXmppUtils::generateRandomBytes(int length)
 {
     QByteArray bytes(length, 'm');
     for (int i = 0; i < length; ++i)
@@ -281,7 +298,7 @@ QByteArray generateRandomBytes(int length)
 ///
 /// \param length
 
-QString generateStanzaHash(int length)
+QString QXmppUtils::generateStanzaHash(int length)
 {
     const QString somechars = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const int N = somechars.size();
@@ -296,36 +313,6 @@ void helperToXmlAddAttribute(QXmlStreamWriter* stream, const QString& name,
 {
     if(!value.isEmpty())
         stream->writeAttribute(name,value);
-}
-
-void helperToXmlAddDomElement(QXmlStreamWriter* stream, const QDomElement& element, const QStringList &omitNamespaces)
-{
-    stream->writeStartElement(element.tagName());
-
-    /* attributes */
-    QString xmlns = element.namespaceURI();
-    if (!xmlns.isEmpty() && !omitNamespaces.contains(xmlns))
-        stream->writeAttribute("xmlns", xmlns);
-    QDomNamedNodeMap attrs = element.attributes();
-    for (int i = 0; i < attrs.size(); i++)
-    {
-        QDomAttr attr = attrs.item(i).toAttr();
-        stream->writeAttribute(attr.name(), attr.value());
-    }
-
-    /* children */
-    QDomNode childNode = element.firstChild();
-    while (!childNode.isNull())
-    {
-        if (childNode.isElement())
-        {
-            helperToXmlAddDomElement(stream, childNode.toElement(), QStringList() << xmlns);
-        } else if (childNode.isText()) {
-            stream->writeCharacters(childNode.toText().data());
-        }
-        childNode = childNode.nextSibling();
-    }
-    stream->writeEndElement();
 }
 
 void helperToXmlAddTextElement(QXmlStreamWriter* stream, const QString& name,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *	Jeremy Lainé
@@ -82,6 +82,7 @@ void QXmppDialback::setType(const QString &type)
     m_type = type;
 }
 
+/// \cond
 bool QXmppDialback::isDialback(const QDomElement &element)
 {
     return element.namespaceURI() == ns_server_dialback &&
@@ -114,4 +115,4 @@ void QXmppDialback::toXml(QXmlStreamWriter *xmlWriter) const
         xmlWriter->writeCharacters(m_key);
     xmlWriter->writeEndElement();
 }
-
+/// \endcond

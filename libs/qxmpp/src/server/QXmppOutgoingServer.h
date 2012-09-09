@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -37,7 +37,7 @@ class QXmppOutgoingServerPrivate;
 /// to another XMPP server.
 ///
 
-class QXmppOutgoingServer : public QXmppStream
+class QXMPP_EXPORT QXmppOutgoingServer : public QXmppStream
 {
     Q_OBJECT
 
@@ -70,6 +70,7 @@ public slots:
 
 private slots:
     void _q_dnsLookupFinished();
+    void _q_socketDisconnected();
     void sendDialback();
     void slotSslErrors(const QList<QSslError> &errors);
     void socketError(QAbstractSocket::SocketError error);

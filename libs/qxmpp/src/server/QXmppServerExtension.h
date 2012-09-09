@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -45,7 +45,7 @@ class QXmppStream;
 ///
 /// \ingroup Core
 
-class QXmppServerExtension : public QXmppLoggable
+class QXMPP_EXPORT QXmppServerExtension : public QXmppLoggable
 {
     Q_OBJECT
 

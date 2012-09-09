@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -78,6 +78,7 @@ void QXmppVersionIq::setVersion(const QString &version)
     m_version = version;
 }
 
+/// \cond
 bool QXmppVersionIq::isVersionIq(const QDomElement &element)
 {
     QDomElement queryElement = element.firstChildElement("query");
@@ -108,4 +109,4 @@ void QXmppVersionIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
 
     writer->writeEndElement();
 }
-
+/// \endcond

@@ -1,12 +1,9 @@
 # Header files
 INSTALL_HEADERS += \
-    base/qdnslookup.h \
-    base/qdnslookup_p.h \
     base/QXmppArchiveIq.h \
     base/QXmppBindIq.h \
     base/QXmppBookmarkSet.h \
     base/QXmppByteStreamIq.h \
-    base/QXmppCodec.h \
     base/QXmppConstants.h \
     base/QXmppDataForm.h \
     base/QXmppDiscoveryIq.h \
@@ -20,14 +17,14 @@ INSTALL_HEADERS += \
     base/QXmppMessage.h \
     base/QXmppMucIq.h \
     base/QXmppNonSASLAuth.h \
-    base/QXmppPacket.h \
     base/QXmppPingIq.h \
     base/QXmppPresence.h \
     base/QXmppPubSubIq.h \
+    base/QXmppRegisterIq.h \
+    base/QXmppResultSet.h \
     base/QXmppRosterIq.h \
     base/QXmppRpcIq.h \
     base/QXmppRtpChannel.h \
-    base/QXmppSaslAuth.h \
     base/QXmppSessionIq.h \
     base/QXmppSocks.h \
     base/QXmppStanza.h \
@@ -38,6 +35,10 @@ INSTALL_HEADERS += \
     base/QXmppUtils.h \
     base/QXmppVCardIq.h \
     base/QXmppVersionIq.h
+
+HEADERS += \
+    base/QXmppCodec_p.h \
+    base/QXmppSasl_p.h
 
 # Source files
 SOURCES += \
@@ -59,14 +60,15 @@ SOURCES += \
     base/QXmppMessage.cpp \
     base/QXmppMucIq.cpp \
     base/QXmppNonSASLAuth.cpp \
-    base/QXmppPacket.cpp \
     base/QXmppPingIq.cpp \
     base/QXmppPresence.cpp \
     base/QXmppPubSubIq.cpp \
+    base/QXmppRegisterIq.cpp \
+    base/QXmppResultSet.cpp \
     base/QXmppRosterIq.cpp \
     base/QXmppRpcIq.cpp \
     base/QXmppRtpChannel.cpp \
-    base/QXmppSaslAuth.cpp \
+    base/QXmppSasl.cpp \
     base/QXmppSessionIq.cpp \
     base/QXmppSocks.cpp \
     base/QXmppStanza.cpp \
@@ -79,8 +81,12 @@ SOURCES += \
     base/QXmppVersionIq.cpp
 
 # DNS
-SOURCES += base/qdnslookup.cpp
-android:SOURCES += base/qdnslookup_stub.cpp
-else:symbian:SOURCES += base/qdnslookup_symbian.cpp
-else:unix:SOURCES += base/qdnslookup_unix.cpp
-else:win32:SOURCES += base/qdnslookup_win.cpp
+qt_version = $$QT_MAJOR_VERSION
+contains(qt_version, 4) {
+    INSTALL_HEADERS += base/qdnslookup.h base/qdnslookup_p.h
+    SOURCES += base/qdnslookup.cpp
+    android:SOURCES += base/qdnslookup_stub.cpp
+    else:symbian:SOURCES += base/qdnslookup_symbian.cpp
+    else:unix:SOURCES += base/qdnslookup_unix.cpp
+    else:win32:SOURCES += base/qdnslookup_win.cpp
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -29,10 +29,10 @@
 
 class QDomElement;
 
-class QXmppDiscoveryIq : public QXmppIq
+class QXMPP_EXPORT QXmppDiscoveryIq : public QXmppIq
 {
 public:
-    class Identity
+    class QXMPP_EXPORT Identity
     {
     public:
         QString category() const;
@@ -54,7 +54,7 @@ public:
         QString m_type;
     };
 
-    class Item
+    class QXMPP_EXPORT Item
     {
     public:
         QString jid() const;

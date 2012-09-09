@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
@@ -74,7 +74,7 @@ private:
     QString m_sid;
 };
 
-class QXmppIbbDataIq : public QXmppIq
+class QXMPP_EXPORT QXmppIbbDataIq : public QXmppIq
 {
 public:
     QXmppIbbDataIq();

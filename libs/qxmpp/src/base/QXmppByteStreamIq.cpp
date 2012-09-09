@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -117,6 +117,7 @@ void QXmppByteStreamIq::setStreamHostUsed(const QString &jid)
     m_streamHostUsed = jid;
 }
 
+/// \cond
 bool QXmppByteStreamIq::isByteStreamIq(const QDomElement &element)
 {
     return element.firstChildElement("query").namespaceURI() == ns_bytestreams;
@@ -181,3 +182,4 @@ void QXmppByteStreamIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
 
     writer->writeEndElement();
 }
+/// \endcond

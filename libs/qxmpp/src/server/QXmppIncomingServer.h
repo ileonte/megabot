@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -34,7 +34,7 @@ class QXmppOutgoingServer;
 /// from an XMPP server.
 ///
 
-class QXmppIncomingServer : public QXmppStream
+class QXMPP_EXPORT QXmppIncomingServer : public QXmppStream
 {
     Q_OBJECT
 
@@ -60,10 +60,12 @@ protected:
 
 private slots:
     void slotDialbackResponseReceived(const QXmppDialback &dialback);
+    void slotSocketDisconnected();
 
 private:
     Q_DISABLE_COPY(QXmppIncomingServer)
-    QXmppIncomingServerPrivate* const d;
+    QXmppIncomingServerPrivate* d;
+    friend class QXmppIncomingServerPrivate;
 };
 
 #endif

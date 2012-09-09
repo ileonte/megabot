@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -36,7 +36,7 @@ class QXmppPasswordChecker;
 /// from an XMPP client.
 ///
 
-class QXmppIncomingClient : public QXmppStream
+class QXMPP_EXPORT QXmppIncomingClient : public QXmppStream
 {
     Q_OBJECT
 
@@ -63,11 +63,13 @@ protected:
 private slots:
     void onDigestReply();
     void onPasswordReply();
+    void onSocketDisconnected();
     void onTimeout();
 
 private:
     Q_DISABLE_COPY(QXmppIncomingClient)
-    QXmppIncomingClientPrivate* const d;
+    QXmppIncomingClientPrivate* d;
+    friend class QXmppIncomingClientPrivate;
 };
 
 #endif

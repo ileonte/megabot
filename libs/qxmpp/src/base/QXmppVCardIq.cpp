@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
@@ -29,7 +29,7 @@
 #include "QXmppUtils.h"
 #include "QXmppConstants.h"
 
-QString getImageType(const QByteArray &contents)
+static QString getImageType(const QByteArray &contents)
 {
     if (contents.startsWith("\x89PNG\x0d\x0a\x1a\x0a"))
         return "image/png";
@@ -48,14 +48,450 @@ QString getImageType(const QByteArray &contents)
     return "image/unknown";
 }
 
+class QXmppVCardAddressPrivate : public QSharedData
+{
+public:
+    QXmppVCardAddressPrivate() : type(QXmppVCardAddress::None) {};
+    QString country;
+    QString locality;
+    QString postcode;
+    QString region;
+    QString street;
+    QXmppVCardAddress::Type type;
+};
+
+/// Constructs an empty address.
+
+QXmppVCardAddress::QXmppVCardAddress()
+    : d(new QXmppVCardAddressPrivate)
+{
+}
+
+/// Constructs a copy of \a other.
+
+QXmppVCardAddress::QXmppVCardAddress(const QXmppVCardAddress &other)
+    : d(other.d)
+{
+}
+
+QXmppVCardAddress::~QXmppVCardAddress()
+{
+}
+
+/// Assigns \a other to this address.
+
+QXmppVCardAddress& QXmppVCardAddress::operator=(const QXmppVCardAddress &other)
+{
+    d = other.d;
+    return *this;
+}
+
+/// Returns the country.
+
+QString QXmppVCardAddress::country() const
+{
+    return d->country;
+}
+
+/// Sets the country.
+
+void QXmppVCardAddress::setCountry(const QString &country)
+{
+    d->country = country;
+}
+
+/// Returns the locality.
+
+QString QXmppVCardAddress::locality() const
+{
+    return d->locality;
+}
+
+/// Sets the locality.
+
+void QXmppVCardAddress::setLocality(const QString &locality)
+{
+    d->locality = locality;
+}
+
+/// Returns the postcode.
+
+QString QXmppVCardAddress::postcode() const
+{
+    return d->postcode;
+}
+
+/// Sets the postcode.
+
+void QXmppVCardAddress::setPostcode(const QString &postcode)
+{
+    d->postcode = postcode;
+}
+
+/// Returns the region.
+
+QString QXmppVCardAddress::region() const
+{
+    return d->region;
+}
+
+/// Sets the region.
+
+void QXmppVCardAddress::setRegion(const QString &region)
+{
+    d->region = region;
+}
+
+/// Returns the street address.
+
+QString QXmppVCardAddress::street() const
+{
+    return d->street;
+}
+
+/// Sets the street address.
+
+void QXmppVCardAddress::setStreet(const QString &street)
+{
+    d->street = street;
+}
+
+/// Returns the address type, which is a combination of TypeFlag.
+
+QXmppVCardAddress::Type QXmppVCardAddress::type() const
+{
+    return d->type;
+}
+
+/// Sets the address \a type, which is a combination of TypeFlag.
+
+void QXmppVCardAddress::setType(QXmppVCardAddress::Type type)
+{
+    d->type = type;
+}
+
+/// \cond
+void QXmppVCardAddress::parse(const QDomElement &element)
+{
+    if (!element.firstChildElement("HOME").isNull())
+        d->type |= Home;
+    if (!element.firstChildElement("WORK").isNull())
+        d->type |= Work;
+    if (!element.firstChildElement("POSTAL").isNull())
+        d->type |= Postal;
+    if (!element.firstChildElement("PREF").isNull())
+        d->type |= Preferred;
+
+    d->country = element.firstChildElement("CTRY").text();
+    d->locality = element.firstChildElement("LOCALITY").text();
+    d->postcode = element.firstChildElement("PCODE").text();
+    d->region = element.firstChildElement("REGION").text();
+    d->street = element.firstChildElement("STREET").text();
+}
+
+void QXmppVCardAddress::toXml(QXmlStreamWriter *writer) const
+{
+    writer->writeStartElement("ADR");
+    if (d->type & Home)
+        writer->writeEmptyElement("HOME");
+    if (d->type & Work)
+        writer->writeEmptyElement("WORK");
+    if (d->type & Postal)
+        writer->writeEmptyElement("POSTAL");
+    if (d->type & Preferred)
+        writer->writeEmptyElement("PREF");
+
+    if (!d->country.isEmpty())
+        writer->writeTextElement("CTRY", d->country);
+    if (!d->locality.isEmpty())
+        writer->writeTextElement("LOCALITY", d->locality);
+    if (!d->postcode.isEmpty())
+        writer->writeTextElement("PCODE", d->postcode);
+    if (!d->region.isEmpty())
+        writer->writeTextElement("REGION", d->region);
+    if (!d->street.isEmpty())
+        writer->writeTextElement("STREET", d->street);
+
+    writer->writeEndElement();
+}
+/// \endcond
+
+class QXmppVCardEmailPrivate : public QSharedData
+{
+public:
+    QXmppVCardEmailPrivate() : type(QXmppVCardEmail::None) {};
+    QString address;
+    QXmppVCardEmail::Type type;
+};
+
+/// Constructs an empty e-mail address.
+
+QXmppVCardEmail::QXmppVCardEmail()
+    : d(new QXmppVCardEmailPrivate)
+{
+}
+
+/// Constructs a copy of \a other.
+
+QXmppVCardEmail::QXmppVCardEmail(const QXmppVCardEmail &other)
+    : d(other.d)
+{
+}
+
+QXmppVCardEmail::~QXmppVCardEmail()
+{
+}
+
+/// Assigns \a other to this e-mail address.
+
+QXmppVCardEmail& QXmppVCardEmail::operator=(const QXmppVCardEmail &other)
+{
+    d = other.d;
+    return *this;
+}
+
+/// Returns the e-mail address.
+
+QString QXmppVCardEmail::address() const
+{
+    return d->address;
+}
+
+/// Sets the e-mail \a address.
+
+void QXmppVCardEmail::setAddress(const QString &address)
+{
+    d->address = address;
+}
+
+/// Returns the e-mail type, which is a combination of TypeFlag.
+
+QXmppVCardEmail::Type QXmppVCardEmail::type() const
+{
+    return d->type;
+}
+
+/// Sets the e-mail \a type, which is a combination of TypeFlag.
+
+void QXmppVCardEmail::setType(QXmppVCardEmail::Type type)
+{
+    d->type = type;
+}
+
+/// \cond
+void QXmppVCardEmail::parse(const QDomElement &element)
+{
+    if (!element.firstChildElement("HOME").isNull())
+        d->type |= Home;
+    if (!element.firstChildElement("WORK").isNull())
+        d->type |= Work;
+    if (!element.firstChildElement("INTERNET").isNull())
+        d->type |= Internet;
+    if (!element.firstChildElement("PREF").isNull())
+        d->type |= Preferred;
+    if (!element.firstChildElement("X400").isNull())
+        d->type |= X400;
+    d->address = element.firstChildElement("USERID").text();
+}
+
+void QXmppVCardEmail::toXml(QXmlStreamWriter *writer) const
+{
+    writer->writeStartElement("EMAIL");
+    if (d->type & Home)
+        writer->writeEmptyElement("HOME");
+    if (d->type & Work)
+        writer->writeEmptyElement("WORK");
+    if (d->type & Internet)
+        writer->writeEmptyElement("INTERNET");
+    if (d->type & Preferred)
+        writer->writeEmptyElement("PREF");
+    if (d->type & X400)
+        writer->writeEmptyElement("X400");
+    writer->writeTextElement("USERID", d->address);
+    writer->writeEndElement();
+}
+/// \endcond
+
+class QXmppVCardPhonePrivate : public QSharedData
+{
+public:
+    QXmppVCardPhonePrivate() : type(QXmppVCardPhone::None) {};
+    QString number;
+    QXmppVCardPhone::Type type;
+};
+
+/// Constructs an empty phone number.
+
+QXmppVCardPhone::QXmppVCardPhone()
+    : d(new QXmppVCardPhonePrivate)
+{
+}
+
+/// Constructs a copy of \a other.
+
+QXmppVCardPhone::QXmppVCardPhone(const QXmppVCardPhone &other)
+    : d(other.d)
+{
+}
+
+QXmppVCardPhone::~QXmppVCardPhone()
+{
+}
+
+/// Assigns \a other to this phone number.
+
+QXmppVCardPhone& QXmppVCardPhone::operator=(const QXmppVCardPhone &other)
+{
+    d = other.d;
+    return *this;
+}
+
+/// Returns the phone number.
+
+QString QXmppVCardPhone::number() const
+{
+    return d->number;
+}
+
+/// Sets the phone \a number.
+
+void QXmppVCardPhone::setNumber(const QString &number)
+{
+    d->number = number;
+}
+
+/// Returns the phone number type, which is a combination of TypeFlag.
+
+QXmppVCardPhone::Type QXmppVCardPhone::type() const
+{
+    return d->type;
+}
+
+/// Sets the phone number \a type, which is a combination of TypeFlag.
+
+void QXmppVCardPhone::setType(QXmppVCardPhone::Type type)
+{
+    d->type = type;
+}
+
+/// \cond
+void QXmppVCardPhone::parse(const QDomElement &element)
+{
+    if (!element.firstChildElement("HOME").isNull())
+        d->type |= Home;
+    if (!element.firstChildElement("WORK").isNull())
+        d->type |= Work;
+    if (!element.firstChildElement("VOICE").isNull())
+        d->type |= Voice;
+    if (!element.firstChildElement("FAX").isNull())
+        d->type |= Fax;
+    if (!element.firstChildElement("PAGER").isNull())
+        d->type |= Pager;
+    if (!element.firstChildElement("MSG").isNull())
+        d->type |= Messaging;
+    if (!element.firstChildElement("CELL").isNull())
+        d->type |= Cell;
+    if (!element.firstChildElement("VIDEO").isNull())
+        d->type |= Video;
+    if (!element.firstChildElement("BBS").isNull())
+        d->type |= BBS;
+    if (!element.firstChildElement("MODEM").isNull())
+        d->type |= Modem;
+    if (!element.firstChildElement("ISDN").isNull())
+        d->type |= ISDN;
+    if (!element.firstChildElement("PCS").isNull())
+        d->type |= PCS;
+    if (!element.firstChildElement("PREF").isNull())
+        d->type |= Preferred;
+    d->number = element.firstChildElement("NUMBER").text();
+}
+
+void QXmppVCardPhone::toXml(QXmlStreamWriter *writer) const
+{
+    writer->writeStartElement("PHONE");
+    if (d->type & Home)
+        writer->writeEmptyElement("HOME");
+    if (d->type & Work)
+        writer->writeEmptyElement("WORK");
+    if (d->type & Voice)
+        writer->writeEmptyElement("VOICE");
+    if (d->type & Fax)
+        writer->writeEmptyElement("FAX");
+    if (d->type & Pager)
+        writer->writeEmptyElement("PAGER");
+    if (d->type & Messaging)
+        writer->writeEmptyElement("MSG");
+    if (d->type & Cell)
+        writer->writeEmptyElement("CELL");
+    if (d->type & Video)
+        writer->writeEmptyElement("VIDEO");
+    if (d->type & BBS)
+        writer->writeEmptyElement("BBS");
+    if (d->type & Modem)
+        writer->writeEmptyElement("MODEM");
+    if (d->type & ISDN)
+        writer->writeEmptyElement("ISDN");
+    if (d->type & PCS)
+        writer->writeEmptyElement("PCS");
+    if (d->type & Preferred)
+        writer->writeEmptyElement("PREF");
+    writer->writeTextElement("NUMBER", d->number);
+    writer->writeEndElement();
+}
+/// \endcond
+
+class QXmppVCardIqPrivate : public QSharedData
+{
+public:
+    QDate birthday;
+    QString description;
+    QString firstName;
+    QString fullName;
+    QString lastName;
+    QString middleName;
+    QString nickName;
+    QString url;
+
+    // not as 64 base
+    QByteArray photo;
+    QString photoType;
+
+    QList<QXmppVCardAddress> addresses;
+    QList<QXmppVCardEmail> emails;
+    QList<QXmppVCardPhone> phones;
+};
+
 /// Constructs a QXmppVCardIq for the specified recipient.
 ///
 /// \param jid
 
-QXmppVCardIq::QXmppVCardIq(const QString& jid) : QXmppIq(QXmppIq::Get)
+QXmppVCardIq::QXmppVCardIq(const QString& jid)
+    : QXmppIq()
+    , d(new QXmppVCardIqPrivate)
 {
     // for self jid should be empty
     setTo(jid);
+}
+
+/// Constructs a copy of \a other.
+
+QXmppVCardIq::QXmppVCardIq(const QXmppVCardIq &other)
+    : QXmppIq(other)
+    , d(other.d)
+{
+}
+
+QXmppVCardIq::~QXmppVCardIq()
+{
+}
+
+/// Assigns \a other to this vCard IQ.
+
+QXmppVCardIq& QXmppVCardIq::operator=(const QXmppVCardIq &other)
+{
+    QXmppIq::operator=(other);
+    d = other.d;
+    return *this;
 }
 
 /// Returns the date of birth of the individual associated with the vCard.
@@ -63,7 +499,7 @@ QXmppVCardIq::QXmppVCardIq(const QString& jid) : QXmppIq(QXmppIq::Get)
 
 QDate QXmppVCardIq::birthday() const
 {
-    return m_birthday;
+    return d->birthday;
 }
 
 /// Sets the date of birth of the individual associated with the vCard.
@@ -72,7 +508,21 @@ QDate QXmppVCardIq::birthday() const
 
 void QXmppVCardIq::setBirthday(const QDate &birthday)
 {
-    m_birthday = birthday;
+    d->birthday = birthday;
+}
+
+/// Returns the free-form descriptive text.
+
+QString QXmppVCardIq::description() const
+{
+    return d->description;
+}
+
+/// Sets the free-form descriptive text.
+
+void QXmppVCardIq::setDescription(const QString &description)
+{
+    d->description = description;
 }
 
 /// Returns the email address.
@@ -80,7 +530,10 @@ void QXmppVCardIq::setBirthday(const QDate &birthday)
 
 QString QXmppVCardIq::email() const
 {
-    return m_email;
+    if (d->emails.isEmpty())
+        return QString();
+    else
+        return d->emails.first().address();
 }
 
 /// Sets the email address.
@@ -89,7 +542,10 @@ QString QXmppVCardIq::email() const
 
 void QXmppVCardIq::setEmail(const QString &email)
 {
-    m_email = email;
+    QXmppVCardEmail first;
+    first.setAddress(email);
+    first.setType(QXmppVCardEmail::Internet);
+    d->emails = QList<QXmppVCardEmail>() << first;
 }
 
 /// Returns the first name.
@@ -97,7 +553,7 @@ void QXmppVCardIq::setEmail(const QString &email)
 
 QString QXmppVCardIq::firstName() const
 {
-    return m_firstName;
+    return d->firstName;
 }
 
 /// Sets the first name.
@@ -106,7 +562,7 @@ QString QXmppVCardIq::firstName() const
 
 void QXmppVCardIq::setFirstName(const QString &firstName)
 {
-    m_firstName = firstName;
+    d->firstName = firstName;
 }
 
 /// Returns the full name.
@@ -114,7 +570,7 @@ void QXmppVCardIq::setFirstName(const QString &firstName)
 
 QString QXmppVCardIq::fullName() const
 {
-    return m_fullName;
+    return d->fullName;
 }
 
 /// Sets the full name.
@@ -123,7 +579,7 @@ QString QXmppVCardIq::fullName() const
 
 void QXmppVCardIq::setFullName(const QString &fullName)
 {
-    m_fullName = fullName;
+    d->fullName = fullName;
 }
 
 /// Returns the last name.
@@ -131,7 +587,7 @@ void QXmppVCardIq::setFullName(const QString &fullName)
 
 QString QXmppVCardIq::lastName() const
 {
-    return m_lastName;
+    return d->lastName;
 }
 
 /// Sets the last name.
@@ -140,7 +596,7 @@ QString QXmppVCardIq::lastName() const
 
 void QXmppVCardIq::setLastName(const QString &lastName)
 {
-    m_lastName = lastName;
+    d->lastName = lastName;
 }
 
 /// Returns the middle name.
@@ -148,7 +604,7 @@ void QXmppVCardIq::setLastName(const QString &lastName)
 
 QString QXmppVCardIq::middleName() const
 {
-    return m_middleName;
+    return d->middleName;
 }
 
 /// Sets the middle name.
@@ -157,7 +613,7 @@ QString QXmppVCardIq::middleName() const
 
 void QXmppVCardIq::setMiddleName(const QString &middleName)
 {
-    m_middleName = middleName;
+    d->middleName = middleName;
 }
 
 /// Returns the nickname.
@@ -165,7 +621,7 @@ void QXmppVCardIq::setMiddleName(const QString &middleName)
 
 QString QXmppVCardIq::nickName() const
 {
-    return m_nickName;
+    return d->nickName;
 }
 
 /// Sets the nickname.
@@ -174,7 +630,7 @@ QString QXmppVCardIq::nickName() const
 
 void QXmppVCardIq::setNickName(const QString &nickName)
 {
-    m_nickName = nickName;
+    d->nickName = nickName;
 }
 
 /// Returns the URL associated with the vCard. It can represent the user's
@@ -183,7 +639,7 @@ void QXmppVCardIq::setNickName(const QString &nickName)
 
 QString QXmppVCardIq::url() const
 {
-    return m_url;
+    return d->url;
 }
 
 /// Sets the URL associated with the vCard. It can represent the user's
@@ -194,7 +650,7 @@ QString QXmppVCardIq::url() const
 
 void QXmppVCardIq::setUrl(const QString& url)
 {
-    m_url = url;
+    d->url = url;
 }
 
 /// Returns the photo's binary contents.
@@ -211,30 +667,72 @@ void QXmppVCardIq::setUrl(const QString& url)
 
 QByteArray QXmppVCardIq::photo() const
 {
-    return m_photo;
+    return d->photo;
 }
 
 /// Sets the photo's binary contents.
 
 void QXmppVCardIq::setPhoto(const QByteArray& photo)
 {
-    m_photo = photo;
+    d->photo = photo;
 }
 
 /// Returns the photo's MIME type.
 
 QString QXmppVCardIq::photoType() const
 {
-    return m_photoType;
+    return d->photoType;
 }
 
 /// Sets the photo's MIME type.
 
 void QXmppVCardIq::setPhotoType(const QString& photoType)
 {
-    m_photoType = photoType;
+    d->photoType = photoType;
 }
 
+/// Returns the addresses.
+
+QList<QXmppVCardAddress> QXmppVCardIq::addresses() const
+{
+    return d->addresses;
+}
+
+/// Sets the addresses.
+
+void QXmppVCardIq::setAddresses(const QList<QXmppVCardAddress> &addresses)
+{
+    d->addresses = addresses;
+}
+
+/// Returns the e-mail addresses.
+
+QList<QXmppVCardEmail> QXmppVCardIq::emails() const
+{
+    return d->emails;
+}
+
+/// Sets the e-mail addresses.
+
+void QXmppVCardIq::setEmails(const QList<QXmppVCardEmail> &emails)
+{
+    d->emails = emails;
+}
+
+/// Returns the phone numbers.
+
+QList<QXmppVCardPhone> QXmppVCardIq::phones() const
+{
+    return d->phones;
+}
+
+/// Sets the phone numbers.
+
+void QXmppVCardIq::setPhones(const QList<QXmppVCardPhone> &phones)
+{
+    d->phones = phones;
+}
+/// \cond
 bool QXmppVCardIq::isVCard(const QDomElement &nodeRecv)
 {
     return nodeRecv.firstChildElement("vCard").namespaceURI() == ns_vcard;
@@ -244,67 +742,85 @@ void QXmppVCardIq::parseElementFromChild(const QDomElement& nodeRecv)
 {
     // vCard
     QDomElement cardElement = nodeRecv.firstChildElement("vCard");
-    m_birthday = QDate::fromString(cardElement.firstChildElement("BDAY").text(), "yyyy-MM-dd");
-    QDomElement emailElement = cardElement.firstChildElement("EMAIL");
-    m_email = emailElement.firstChildElement("USERID").text();
-    m_fullName = cardElement.firstChildElement("FN").text();
-    m_nickName = cardElement.firstChildElement("NICKNAME").text();
+    d->birthday = QDate::fromString(cardElement.firstChildElement("BDAY").text(), "yyyy-MM-dd");
+    d->description = cardElement.firstChildElement("DESC").text();
+    d->fullName = cardElement.firstChildElement("FN").text();
+    d->nickName = cardElement.firstChildElement("NICKNAME").text();
     QDomElement nameElement = cardElement.firstChildElement("N");
-    m_firstName = nameElement.firstChildElement("GIVEN").text();
-    m_lastName = nameElement.firstChildElement("FAMILY").text();
-    m_middleName = nameElement.firstChildElement("MIDDLE").text();
-    m_url = cardElement.firstChildElement("URL").text();
+    d->firstName = nameElement.firstChildElement("GIVEN").text();
+    d->lastName = nameElement.firstChildElement("FAMILY").text();
+    d->middleName = nameElement.firstChildElement("MIDDLE").text();
+    d->url = cardElement.firstChildElement("URL").text();
     QDomElement photoElement = cardElement.firstChildElement("PHOTO");
     QByteArray base64data = photoElement.
                             firstChildElement("BINVAL").text().toAscii();
-    m_photo = QByteArray::fromBase64(base64data);
-    m_photoType = photoElement.firstChildElement("TYPE").text();
+    d->photo = QByteArray::fromBase64(base64data);
+    d->photoType = photoElement.firstChildElement("TYPE").text();
+
+    QDomElement child = cardElement.firstChildElement();
+    while (!child.isNull()) {
+        if (child.tagName() == "ADR") {
+            QXmppVCardAddress address;
+            address.parse(child);
+            d->addresses << address;
+        } else if (child.tagName() == "EMAIL") {
+            QXmppVCardEmail email;
+            email.parse(child);
+            d->emails << email;
+        } else if (child.tagName() == "PHONE") {
+            QXmppVCardPhone phone;
+            phone.parse(child);
+            d->phones << phone;
+        }
+        child = child.nextSiblingElement();
+    }
 }
 
 void QXmppVCardIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
 {
     writer->writeStartElement("vCard");
     writer->writeAttribute("xmlns", ns_vcard);
-    if (m_birthday.isValid())
-        helperToXmlAddTextElement(writer, "BDAY", m_birthday.toString("yyyy-MM-dd"));
-    if (!m_email.isEmpty())
-    {
-        writer->writeStartElement("EMAIL");
-        writer->writeEmptyElement("INTERNET");
-        helperToXmlAddTextElement(writer, "USERID", m_email);
-        writer->writeEndElement();
-    }
-    if (!m_fullName.isEmpty())
-        helperToXmlAddTextElement(writer, "FN", m_fullName);
-    if(!m_nickName.isEmpty())
-        helperToXmlAddTextElement(writer, "NICKNAME", m_nickName);
-    if (!m_firstName.isEmpty() ||
-        !m_lastName.isEmpty() ||
-        !m_middleName.isEmpty())
+    foreach (const QXmppVCardAddress &address, d->addresses)
+        address.toXml(writer);
+    if (d->birthday.isValid())
+        helperToXmlAddTextElement(writer, "BDAY", d->birthday.toString("yyyy-MM-dd"));
+    if (!d->description.isEmpty())
+        helperToXmlAddTextElement(writer, "DESC", d->description);
+    foreach (const QXmppVCardEmail &email, d->emails)
+        email.toXml(writer);
+    if (!d->fullName.isEmpty())
+        helperToXmlAddTextElement(writer, "FN", d->fullName);
+    if(!d->nickName.isEmpty())
+        helperToXmlAddTextElement(writer, "NICKNAME", d->nickName);
+    if (!d->firstName.isEmpty() ||
+        !d->lastName.isEmpty() ||
+        !d->middleName.isEmpty())
     {
         writer->writeStartElement("N");
-        if (!m_firstName.isEmpty())
-            helperToXmlAddTextElement(writer, "GIVEN", m_firstName);
-        if (!m_lastName.isEmpty())
-            helperToXmlAddTextElement(writer, "FAMILY", m_lastName);
-        if (!m_middleName.isEmpty())
-            helperToXmlAddTextElement(writer, "MIDDLE", m_middleName);
+        if (!d->firstName.isEmpty())
+            helperToXmlAddTextElement(writer, "GIVEN", d->firstName);
+        if (!d->lastName.isEmpty())
+            helperToXmlAddTextElement(writer, "FAMILY", d->lastName);
+        if (!d->middleName.isEmpty())
+            helperToXmlAddTextElement(writer, "MIDDLE", d->middleName);
         writer->writeEndElement();
     }
-    if (!m_url.isEmpty())
-        helperToXmlAddTextElement(writer, "URL", m_url);
 
+    foreach (const QXmppVCardPhone &phone, d->phones)
+        phone.toXml(writer);
     if(!photo().isEmpty())
     {
         writer->writeStartElement("PHOTO");
-        QString photoType = m_photoType;
+        QString photoType = d->photoType;
         if (photoType.isEmpty())
-            photoType = getImageType(m_photo);
+            photoType = getImageType(d->photo);
         helperToXmlAddTextElement(writer, "TYPE", photoType);
-        helperToXmlAddTextElement(writer, "BINVAL", m_photo.toBase64());
+        helperToXmlAddTextElement(writer, "BINVAL", d->photo.toBase64());
         writer->writeEndElement();
     }
+    if (!d->url.isEmpty())
+        helperToXmlAddTextElement(writer, "URL", d->url);
 
     writer->writeEndElement();
 }
-
+/// \endcond

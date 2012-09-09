@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
@@ -74,6 +74,7 @@ QXmppLoggable::QXmppLoggable(QObject *parent)
     }
 }
 
+/// \cond
 void QXmppLoggable::childEvent(QChildEvent *event)
 {
     QXmppLoggable *child = qobject_cast<QXmppLoggable*>(event->child());
@@ -88,6 +89,7 @@ void QXmppLoggable::childEvent(QChildEvent *event)
                 this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)));
     }
 }
+/// \endcond
 
 class QXmppLoggerPrivate
 {

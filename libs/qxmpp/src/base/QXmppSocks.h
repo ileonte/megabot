@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -27,16 +27,17 @@
 #include <QHostAddress>
 #include <QTcpSocket>
 
+#include "QXmppGlobal.h"
+
 class QTcpServer;
 
-class QXmppSocksClient : public QTcpSocket
+class QXMPP_EXPORT QXmppSocksClient : public QTcpSocket
 {
     Q_OBJECT
 
 public:
     QXmppSocksClient(const QHostAddress &proxyAddress, quint16 proxyPort, QObject *parent=0);
     void connectToHost(const QString &hostName, quint16 hostPort);
-    bool waitForReady(int msecs = 30000);
 
 signals:
     void ready();
@@ -53,7 +54,7 @@ private:
     int m_step;
 };
 
-class QXmppSocksServer : public QObject
+class QXMPP_EXPORT QXmppSocksServer : public QObject
 {
     Q_OBJECT
 

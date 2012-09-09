@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -29,7 +29,7 @@
 class QXmlStreamWriter;
 class QDomElement;
 
-class QXmppPingIq : public QXmppIq
+class QXMPP_EXPORT QXmppPingIq : public QXmppIq
 {
 public:
     QXmppPingIq();

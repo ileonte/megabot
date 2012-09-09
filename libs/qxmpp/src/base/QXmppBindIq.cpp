@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
@@ -64,6 +64,7 @@ void QXmppBindIq::setResource(const QString& resource)
     m_resource = resource;
 }
 
+/// \cond
 bool QXmppBindIq::isBindIq(const QDomElement &element)
 {
     QDomElement bindElement = element.firstChildElement("bind");
@@ -87,4 +88,4 @@ void QXmppBindIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
         helperToXmlAddTextElement(writer, "resource", m_resource);
     writer->writeEndElement();
 }
-
+/// \endcond

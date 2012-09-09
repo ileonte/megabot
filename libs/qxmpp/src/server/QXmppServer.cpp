@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -41,10 +41,35 @@
 #include "QXmppServerPlugin.h"
 #include "QXmppUtils.h"
 
-#include "mod_presence.h"
+static void helperToXmlAddDomElement(QXmlStreamWriter* stream, const QDomElement& element, const QStringList &omitNamespaces)
+{
+    stream->writeStartElement(element.tagName());
 
-// Core plugins
-Q_IMPORT_PLUGIN(mod_presence)
+    /* attributes */
+    QString xmlns = element.namespaceURI();
+    if (!xmlns.isEmpty() && !omitNamespaces.contains(xmlns))
+        stream->writeAttribute("xmlns", xmlns);
+    QDomNamedNodeMap attrs = element.attributes();
+    for (int i = 0; i < attrs.size(); i++)
+    {
+        QDomAttr attr = attrs.item(i).toAttr();
+        stream->writeAttribute(attr.name(), attr.value());
+    }
+
+    /* children */
+    QDomNode childNode = element.firstChild();
+    while (!childNode.isNull())
+    {
+        if (childNode.isElement())
+        {
+            helperToXmlAddDomElement(stream, childNode.toElement(), QStringList() << xmlns);
+        } else if (childNode.isText()) {
+            stream->writeCharacters(childNode.toText().data());
+        }
+        childNode = childNode.nextSibling();
+    }
+    stream->writeEndElement();
+}
 
 class QXmppServerPrivate
 {
@@ -98,7 +123,7 @@ QXmppServerPrivate::QXmppServerPrivate(QXmppServer *qq)
 bool QXmppServerPrivate::routeData(const QString &to, const QByteArray &data)
 {
     // refuse to route packets to empty destination, own domain or sub-domains
-    const QString toDomain = jidToDomain(to);
+    const QString toDomain = QXmppUtils::jidToDomain(to);
     if (to.isEmpty() || to == domain || toDomain.endsWith("." + domain))
         return false;
 
@@ -106,7 +131,7 @@ bool QXmppServerPrivate::routeData(const QString &to, const QByteArray &data)
 
         // look for a client connection
         QList<QXmppIncomingClient*> found;
-        if (jidToResource(to).isEmpty()) {
+        if (QXmppUtils::jidToResource(to).isEmpty()) {
             foreach (QXmppIncomingClient *conn, incomingClientsByBareJid.value(to))
                 found << conn;
         } else {
@@ -137,7 +162,7 @@ bool QXmppServerPrivate::routeData(const QString &to, const QByteArray &data)
         // if we did not find an outgoing server,
         // we need to establish the S2S connection
         QXmppOutgoingServer *conn = new QXmppOutgoingServer(domain, 0);
-        conn->setLocalStreamKey(generateStanzaHash().toAscii());
+        conn->setLocalStreamKey(QXmppUtils::generateStanzaHash().toAscii());
         conn->moveToThread(q->thread());
         conn->setParent(q);
 
@@ -549,9 +574,10 @@ bool QXmppServer::sendPacket(const QXmppStanza &packet)
     return d->routeData(packet.to(), data);
 }
 
-/// Add a new incoming client stream.
+/// Add a new incoming client \a stream.
 ///
-/// \param stream
+/// This method can be used for instance to implement BOSH support
+/// as a server extension.
 
 void QXmppServer::addIncomingClient(QXmppIncomingClient *stream)
 {
@@ -613,7 +639,7 @@ void QXmppServer::_q_clientConnected()
         old->disconnectFromHost();
     }
     d->incomingClientsByJid.insert(jid, client);
-    d->incomingClientsByBareJid[jidToBareJid(jid)].insert(client);
+    d->incomingClientsByBareJid[QXmppUtils::jidToBareJid(jid)].insert(client);
 
     // emit signal
     emit clientConnected(jid);
@@ -633,7 +659,7 @@ void QXmppServer::_q_clientDisconnected()
         if (!jid.isEmpty()) {
             if (d->incomingClientsByJid.value(jid) == client)
                 d->incomingClientsByJid.remove(jid);
-            const QString bareJid = jidToBareJid(jid);
+            const QString bareJid = QXmppUtils::jidToBareJid(jid);
             if (d->incomingClientsByBareJid.contains(bareJid)) {
                 d->incomingClientsByBareJid[bareJid].remove(client);
                 if (d->incomingClientsByBareJid[bareJid].isEmpty())

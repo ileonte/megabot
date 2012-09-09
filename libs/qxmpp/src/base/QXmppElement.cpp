@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -223,19 +223,3 @@ void QXmppElement::toXml(QXmlStreamWriter *writer) const
         child.toXml(writer);
     writer->writeEndElement();
 }
-
-QXmppElementList::QXmppElementList()
-{
-}
-
-QXmppElementList::QXmppElementList(const QXmppElement &element)
-{
-    append(element);
-}
-
-
-QXmppElementList::QXmppElementList(const QList<QXmppElement> &other)
-    : QList<QXmppElement>(other)
-{
-}
-

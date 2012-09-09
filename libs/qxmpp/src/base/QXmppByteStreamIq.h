@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
@@ -31,7 +31,7 @@
 class QDomElement;
 class QXmlStreamWriter;
 
-class QXmppByteStreamIq : public QXmppIq
+class QXMPP_EXPORT QXmppByteStreamIq : public QXmppIq
 {
 public:
     enum Mode {
@@ -40,7 +40,7 @@ public:
         Udp,
     };
 
-    class StreamHost
+    class QXMPP_EXPORT StreamHost
     {
     public:
         QString jid() const;

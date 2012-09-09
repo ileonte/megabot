@@ -1,8 +1,10 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
- * Author:
+ * Authors:
  *  Manjeet Dahiya
+ *  Jeremy Lainé
+ *  Georg Rudoy
  *
  * Source:
  *  http://code.google.com/p/qxmpp
@@ -30,6 +32,132 @@
 #include <QXmlStreamWriter>
 
 uint QXmppStanza::s_uniqeIdNo = 0;
+
+class QXmppExtendedAddressPrivate : public QSharedData
+{
+public:
+    bool delivered;
+    QString description;
+    QString jid;
+    QString type;
+};
+
+/// Constructs an empty extended address.
+
+QXmppExtendedAddress::QXmppExtendedAddress()
+    : d(new QXmppExtendedAddressPrivate())
+{
+    d->delivered = false;
+}
+
+/// Constructs a copy of other.
+///
+/// \param other
+///
+QXmppExtendedAddress::QXmppExtendedAddress(const QXmppExtendedAddress &other)
+    : d(other.d)
+{
+}
+
+QXmppExtendedAddress::~QXmppExtendedAddress()
+{
+}
+
+/// Assigns the other address to this one.
+///
+/// \param other
+///
+QXmppExtendedAddress& QXmppExtendedAddress::operator=(const QXmppExtendedAddress& other)
+{
+    d = other.d;
+    return *this;
+}
+
+/// Returns the human-readable description of the address.
+
+QString QXmppExtendedAddress::description() const
+{
+    return d->description;
+}
+
+/// Sets the human-readable \a description of the address.
+
+void QXmppExtendedAddress::setDescription(const QString &description)
+{
+    d->description = description;
+}
+
+/// Returns the JID of the address.
+
+QString QXmppExtendedAddress::jid() const
+{
+    return d->jid;
+}
+
+/// Sets the JID of the address.
+
+void QXmppExtendedAddress::setJid(const QString &jid)
+{
+    d->jid = jid;
+}
+
+/// Returns the type of the address.
+
+QString QXmppExtendedAddress::type() const
+{
+    return d->type;
+}
+
+/// Sets the \a type of the address.
+
+void QXmppExtendedAddress::setType(const QString &type)
+{
+    d->type = type;
+}
+
+/// Returns whether the stanza has been delivered to this address.
+
+bool QXmppExtendedAddress::isDelivered() const
+{
+    return d->delivered;
+}
+
+/// Sets whether the stanza has been \a delivered to this address.
+
+void QXmppExtendedAddress::setDelivered(bool delivered)
+{
+    d->delivered = delivered;
+}
+
+/// Checks whether this address is valid. The extended address is considered
+/// to be valid if at least type and JID fields are non-empty.
+
+bool QXmppExtendedAddress::isValid() const
+{
+    return !d->type.isEmpty() && !d->jid.isEmpty();
+}
+
+/// \cond
+void QXmppExtendedAddress::parse(const QDomElement &element)
+{
+    d->delivered = element.attribute("delivered") == "true";
+    d->description = element.attribute("desc");
+    d->jid = element.attribute("jid");
+    d->type = element.attribute("type");
+}
+
+void QXmppExtendedAddress::toXml(QXmlStreamWriter *xmlWriter) const
+{
+    xmlWriter->writeStartElement("address");
+    if (d->delivered)
+        xmlWriter->writeAttribute("delivered", "true");
+    if (!d->description.isEmpty())
+        xmlWriter->writeAttribute("desc", d->description);
+    xmlWriter->writeAttribute("jid", d->jid);
+    xmlWriter->writeAttribute("type", d->type);
+    xmlWriter->writeEndElement();
+}
+/// \endcond
 
 QXmppStanza::Error::Error():
     m_code(0),
@@ -95,6 +223,7 @@ void QXmppStanza::Error::setType(QXmppStanza::Error::Type type)
     m_type = type;
 }
 
+/// \cond
 QString QXmppStanza::Error::getTypeStr() const
 {
     switch(m_type)
@@ -233,11 +362,6 @@ void QXmppStanza::Error::setConditionFromStr(const QString& type)
         setCondition(static_cast<QXmppStanza::Error::Condition>(-1));
 }
 
-bool QXmppStanza::Error::isValid() const
-{
-    return !(getTypeStr().isEmpty() && getConditionStr().isEmpty());
-}
-
 void QXmppStanza::Error::parse(const QDomElement &errorElement)
 {
     setCode(errorElement.attribute("code").toInt());
@@ -292,6 +416,19 @@ void QXmppStanza::Error::toXml( QXmlStreamWriter *writer ) const
 
     writer->writeEndElement();
 }
+/// \endcond
+
+class QXmppStanzaPrivate : public QSharedData
+{
+public:
+    QString to;
+    QString from;
+    QString id;
+    QString lang;
+    QXmppStanza::Error error;
+    QXmppElementList extensions;
+    QList<QXmppExtendedAddress> extendedAddresses;
+};
 
 /// Constructs a QXmppStanza with the specified sender and recipient.
 ///
@@ -299,9 +436,16 @@ void QXmppStanza::Error::toXml( QXmlStreamWriter *writer ) const
 /// \param to
 
 QXmppStanza::QXmppStanza(const QString& from, const QString& to)
-    : QXmppPacket(),
-    m_to(to),
-    m_from(from)
+    : d(new QXmppStanzaPrivate)
+{
+    d->to = to;
+    d->from = from;
+}
+
+/// Constructs a copy of \a other.
+
+QXmppStanza::QXmppStanza(const QXmppStanza &other)
+    : d(other.d)
 {
 }
 
@@ -311,12 +455,20 @@ QXmppStanza::~QXmppStanza()
 {
 }
 
+/// Assigns \a other to this stanza.
+
+QXmppStanza& QXmppStanza::operator=(const QXmppStanza &other)
+{
+    d = other.d;
+    return *this;
+}
+
 /// Returns the stanza's recipient JID.
 ///
 
 QString QXmppStanza::to() const
 {
-    return m_to;
+    return d->to;
 }
 
 /// Sets the stanza's recipient JID.
@@ -325,14 +477,14 @@ QString QXmppStanza::to() const
 
 void QXmppStanza::setTo(const QString& to)
 {
-    m_to = to;
+    d->to = to;
 }
 
 /// Returns the stanza's sender JID.
 
 QString QXmppStanza::from() const
 {
-    return m_from;
+    return d->from;
 }
 
 /// Sets the stanza's sender JID.
@@ -341,14 +493,14 @@ QString QXmppStanza::from() const
 
 void QXmppStanza::setFrom(const QString& from)
 {
-    m_from = from;
+    d->from = from;
 }
 
 /// Returns the stanza's identifier.
 
 QString QXmppStanza::id() const
 {
-    return m_id;
+    return d->id;
 }
 
 /// Sets the stanza's identifier.
@@ -357,14 +509,14 @@ QString QXmppStanza::id() const
 
 void QXmppStanza::setId(const QString& id)
 {
-    m_id = id;
+    d->id = id;
 }
 
 /// Returns the stanza's language.
 
 QString QXmppStanza::lang() const
 {
-    return m_lang;
+    return d->lang;
 }
 
 /// Sets the stanza's language.
@@ -373,14 +525,14 @@ QString QXmppStanza::lang() const
 
 void QXmppStanza::setLang(const QString& lang)
 {
-    m_lang = lang;
+    d->lang = lang;
 }
 
 /// Returns the stanza's error.
 
 QXmppStanza::Error QXmppStanza::error() const
 {
-    return m_error;
+    return d->error;
 }
 
 /// Sets the stanza's error.
@@ -389,7 +541,7 @@ QXmppStanza::Error QXmppStanza::error() const
 
 void QXmppStanza::setError(const QXmppStanza::Error& error)
 {
-    m_error = error;
+    d->error = error;
 }
 
 /// Returns the stanza's "extensions".
@@ -398,7 +550,7 @@ void QXmppStanza::setError(const QXmppStanza::Error& error)
 
 QXmppElementList QXmppStanza::extensions() const
 {
-    return m_extensions;
+    return d->extensions;
 }
 
 /// Sets the stanza's "extensions".
@@ -407,30 +559,69 @@ QXmppElementList QXmppStanza::extensions() const
 
 void QXmppStanza::setExtensions(const QXmppElementList &extensions)
 {
-    m_extensions = extensions;
+    d->extensions = extensions;
 }
 
+/// Returns the stanza's extended addresses as defined by
+/// XEP-0033: Extended Stanza Addressing.
+
+QList<QXmppExtendedAddress> QXmppStanza::extendedAddresses() const
+{
+    return d->extendedAddresses;
+}
+
+/// Sets the stanza's extended addresses as defined by
+/// XEP-0033: Extended Stanza Addressing.
+
+void QXmppStanza::setExtendedAddresses(const QList<QXmppExtendedAddress> &addresses)
+{
+    d->extendedAddresses = addresses;
+}
+
+/// \cond
 void QXmppStanza::generateAndSetNextId()
 {
     // get back
     ++s_uniqeIdNo;
-    m_id = "qxmpp" + QString::number(s_uniqeIdNo);
-}
-
-bool QXmppStanza::isErrorStanza() const
-{
-    return m_error.isValid();
+    d->id = "qxmpp" + QString::number(s_uniqeIdNo);
 }
 
 void QXmppStanza::parse(const QDomElement &element)
 {
-    m_from = element.attribute("from");
-    m_to = element.attribute("to");
-    m_id = element.attribute("id");
-    m_lang = element.attribute("lang");
+    d->from = element.attribute("from");
+    d->to = element.attribute("to");
+    d->id = element.attribute("id");
+    d->lang = element.attribute("lang");
 
     QDomElement errorElement = element.firstChildElement("error");
     if(!errorElement.isNull())
-        m_error.parse(errorElement);
+        d->error.parse(errorElement);
+
+    // XEP-0033: Extended Stanza Addressing
+    QDomElement addressElement = element.firstChildElement("addresses").firstChildElement("address");
+    while (!addressElement.isNull()) {
+        QXmppExtendedAddress address;
+        address.parse(addressElement);
+        if (address.isValid())
+            d->extendedAddresses << address;
+        addressElement = addressElement.nextSiblingElement("address");
+    }
 }
 
+void QXmppStanza::extensionsToXml(QXmlStreamWriter *xmlWriter) const
+{
+    // XEP-0033: Extended Stanza Addressing
+    if (!d->extendedAddresses.isEmpty()) {
+        xmlWriter->writeStartElement("addresses");
+        xmlWriter->writeAttribute("xmlns", ns_extended_addressing);
+        foreach (const QXmppExtendedAddress &address, d->extendedAddresses)
+            address.toXml(xmlWriter);
+        xmlWriter->writeEndElement();
+    }
+
+    // other extensions
+    foreach (const QXmppElement &extension, d->extensions)
+        extension.toXml(xmlWriter);
+}
+
+/// \endcond

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2011 The QXmpp developers
+ * Copyright (C) 2008-2012 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
@@ -25,7 +25,7 @@
 
 #include "QXmppConstants.h"
 #include "QXmppLogger.h"
-#include "QXmppPacket.h"
+#include "QXmppStanza.h"
 #include "QXmppStream.h"
 #include "QXmppUtils.h"
 
@@ -69,7 +69,7 @@ QXmppStream::QXmppStream(QObject *parent)
     // Make sure the random number generator is seeded
     if (!randomSeeded)
     {
-        qsrand(QTime(0,0,0).secsTo(QTime::currentTime()));
+        qsrand(QTime(0,0,0).msecsTo(QTime::currentTime()) ^ reinterpret_cast<quintptr>(this));
         randomSeeded = true;
     }
 }
@@ -130,7 +130,7 @@ bool QXmppStream::sendData(const QByteArray &data)
 ///
 /// \param packet
 
-bool QXmppStream::sendPacket(const QXmppPacket &packet)
+bool QXmppStream::sendPacket(const QXmppStanza &packet)
 {
     // prepare packet
     QByteArray data;
@@ -166,10 +166,6 @@ void QXmppStream::setSocket(QSslSocket *socket)
                     this, SLOT(_q_socketConnected()));
     Q_ASSERT(check);
 
-    check = connect(socket, SIGNAL(disconnected()),
-                    this, SLOT(_q_socketDisconnected()));
-    Q_ASSERT(check);
-
     check = connect(socket, SIGNAL(encrypted()),
                     this, SLOT(_q_socketEncrypted()));
     Q_ASSERT(check);
@@ -180,11 +176,6 @@ void QXmppStream::setSocket(QSslSocket *socket)
     check = connect(socket, SIGNAL(readyRead()),
                     this, SLOT(_q_socketReadyRead()));
     Q_ASSERT(check);
-
-    // relay signals
-    check = connect(socket, SIGNAL(disconnected()),
-                    this, SIGNAL(disconnected()));
-    Q_ASSERT(check);
 }
 
 void QXmppStream::_q_socketConnected()
@@ -193,11 +184,6 @@ void QXmppStream::_q_socketConnected()
         d->socket->peerAddress().toString(),
         QString::number(d->socket->peerPort())));
     handleStart();
-}
-
-void QXmppStream::_q_socketDisconnected()
-{
-    info("Socket disconnected");
 }
 
 void QXmppStream::_q_socketEncrypted()
