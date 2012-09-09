@@ -82,11 +82,11 @@ class CRoomPresencePacket : public CBaseControlPacket
 	Q_OBJECT
 
 private:
-	QXmppPresence::Type         m_ptype;
-	QString                     m_who;
-	QXmppPresence::Status::Type m_statusType;
-	QString                     m_statusText;
-	int                         m_statusPriority;
+	QXmppPresence::Type                m_ptype;
+	QString                            m_who;
+	QXmppPresence::AvailableStatusType m_statusType;
+	QString                            m_statusText;
+	int                                m_statusPriority;
 
 public:
 	CRoomPresencePacket( QObject *parent = 0 );
@@ -94,7 +94,7 @@ public:
 
 	QXmppPresence::Type presenceType() const { return m_ptype; }
 	QString who() const { return m_who; }
-	QXmppPresence::Status::Type statusType() const { return m_statusType; }
+	QXmppPresence::AvailableStatusType statusType() const { return m_statusType; }
 	QString statusText() const { return m_statusText; }
 	int statusPriority() const { return m_statusPriority; }
 

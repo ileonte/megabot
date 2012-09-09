@@ -52,21 +52,7 @@ public:
 	QString bareJid() const {
 		return m_account + "@" + m_host;
 	}
-	bool setJid( const QString &jid ) {
-		QString acc  = jidToUser( jid );
-		QString host = jidToDomain( jid );
-		QString res  = jidToResource( jid );
-
-		if ( !acc.isEmpty() && !host.isEmpty() && !res.isEmpty() ) {
-			m_host     = host;
-			m_account  = acc;
-			m_resource = res;
-
-			return true;
-		}
-
-		return false;
-	}
+	bool setJid( const QString &jid );
 
 	QString host() const { return m_host; }
 	void setHost( const QString &v ) { m_host = v; m_domain = v; }

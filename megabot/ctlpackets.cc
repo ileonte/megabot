@@ -166,9 +166,9 @@ CRoomPresencePacket::CRoomPresencePacket( const QXmppPresence &presence, QObject
 	m_type           = RoomPresence;
 	m_ptype          = presence.type();
 	m_who            = presence.from();
-	m_statusType     = presence.status().type();
-	m_statusText     = presence.status().statusText();
-	m_statusPriority = presence.status().priority();
+	m_statusType     = presence.availableStatusType();
+	m_statusText     = presence.statusText();
+	m_statusPriority = presence.priority();
 }
 
 void CRoomPresencePacket::pack( QByteArray &where ) const
@@ -208,16 +208,16 @@ bool CRoomPresencePacket::unpack( QByteArray &from )
 	m_ptype = ( QXmppPresence::Type )t;
 	if ( !unpack_string( data, p, m_who ) ) return false;
 	if ( !unpack_int( data, p, t ) ) return false;
-	switch ( ( QXmppPresence::Status::Type )t ) {
-		case QXmppPresence::Status::Offline:
-		case QXmppPresence::Status::Online:
-		case QXmppPresence::Status::Away:
-		case QXmppPresence::Status::XA:
-		case QXmppPresence::Status::DND:
-		case QXmppPresence::Status::Chat:
+	switch ( ( QXmppPresence::AvailableStatusType )t ) {
+		case QXmppPresence::Online:
+		case QXmppPresence::Away:
+		case QXmppPresence::XA:
+		case QXmppPresence::DND:
+		case QXmppPresence::Chat:
+		case QXmppPresence::Invisible: break;
 		default: return false;
 	}
-	m_statusType = ( QXmppPresence::Status::Type )t;
+	m_statusType = ( QXmppPresence::AvailableStatusType )t;
 	if ( !unpack_string( data, p, m_statusText ) ) return false;
 	if ( !unpack_int( data, p, t ) ) return false;
 	m_statusPriority = ( int )t;

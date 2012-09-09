@@ -2,6 +2,8 @@
 #include "cscriptcontroller.h"
 #include "ctlpackets.h"
 
+#include <QXmppUtils.h>
+
 CXMPPRoom::CXMPPRoom( CXMPPServer *parent ) : QObject( parent )
 {
 	m_server  = parent;
@@ -58,7 +60,7 @@ void CXMPPRoom::part()
 
 void CXMPPRoom::handleRoomPresence( const QXmppPresence &presence )
 {
-	QString nickName = jidToResource( presence.from() );
+	QString nickName = QXmppUtils::jidToResource( presence.from() );
 	switch ( presence.type() ) {
 		case QXmppPresence::Available: {
 			m_participants.append( nickName );
@@ -87,7 +89,7 @@ void CXMPPRoom::handleRoomPresence( const QXmppPresence &presence )
 
 void CXMPPRoom::handleRoomMessage( const QXmppMessage &msg )
 {
-	if ( jidToResource( msg.from() ) == "" )
+	if ( QXmppUtils::jidToResource( msg.from() ) == "" )
 		return;
 
 	for ( int i = 0; i < m_scripts.size(); i++ )

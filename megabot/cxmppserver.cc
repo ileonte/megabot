@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "cscriptcontroller.h"
 
+#include <QXmppUtils.h>
 #include <QXmppMessage.h>
 
 CXMPPServer::CXMPPServer( QObject *parent ) : QObject( parent )
@@ -27,6 +28,23 @@ CXMPPServer::~CXMPPServer()
 	m_rooms.clear();
 }
 
+bool CXMPPServer::setJid( const QString &jid )
+{
+	QString acc  = QXmppUtils::jidToUser( jid );
+	QString host = QXmppUtils::jidToDomain( jid );
+	QString res  = QXmppUtils::jidToResource( jid );
+
+	if ( !acc.isEmpty() && !host.isEmpty() && !res.isEmpty() ) {
+		m_host     = host;
+		m_account  = acc;
+		m_resource = res;
+
+		return true;
+	}
+
+	return false;
+}
+
 void CXMPPServer::connectToServer()
 {
 	QXmppConfiguration cfg;
@@ -39,8 +57,9 @@ void CXMPPServer::connectToServer()
 	cfg.setAutoReconnectionEnabled( true );
 	cfg.setStreamSecurityMode( QXmppConfiguration::TLSRequired );
 
-	QXmppPresence pres( QXmppPresence::Available,
-			   QXmppPresence::Status( QXmppPresence::Status::Online, "Doctors are rich ? When did this happen !?" ) );
+	QXmppPresence pres( QXmppPresence::Available );
+	pres.setAvailableStatusType( QXmppPresence::Online );
+	pres.setStatusText( "Doctors are rich ? When did this happen !?" );
 
 	connect( m_client, SIGNAL( connected() ), this, SLOT( clientConnected() ) );
 	connect( m_client, SIGNAL( disconnected() ), this, SLOT( clientDisconnected() ) );
@@ -362,7 +381,7 @@ void CXMPPServer::messageReceived( const QXmppMessage &msg )
 			break;
 		}
 		case QXmppMessage::GroupChat: {
-			QString bareJid = jidToBareJid( msg.from() );
+			QString bareJid = QXmppUtils::jidToBareJid( msg.from() );
 			CXMPPRoom *room = findRoom( bareJid );
 			if ( !msg.stamp().isValid() && room )
 				room->handleRoomMessage( msg );
@@ -376,7 +395,7 @@ void CXMPPServer::messageReceived( const QXmppMessage &msg )
 
 void CXMPPServer::presenceReceived( const QXmppPresence &presence )
 {
-	CXMPPRoom *room = findRoom( jidToBareJid( presence.from() ) );
+	CXMPPRoom *room = findRoom( QXmppUtils::jidToBareJid( presence.from() ) );
 	if ( room )
 		room->handleRoomPresence( presence);
 }

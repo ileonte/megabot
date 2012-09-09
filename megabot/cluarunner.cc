@@ -62,7 +62,7 @@ void CLuaRunner::onRoomMessagePacket( const CRoomMessagePacket &pkt )
 {
 	CScriptRunnerBase::onRoomMessagePacket( pkt );
 
-	if ( jidToResource( pkt.from() ) == m_nickName )
+	if ( QXmppUtils::jidToResource( pkt.from() ) == m_nickName )
 		return;
 
 	lua_getglobal( L, "handle_room_message" );
@@ -79,7 +79,7 @@ void CLuaRunner::onRoomMessagePacket( const CRoomMessagePacket &pkt )
 	lua_pushstring( L, pkt.body().toUtf8().data() );
 	lua_settable( L, -3 );
 	lua_pushstring( L, "nickName" );
-	lua_pushstring( L, jidToResource( pkt.from() ).toUtf8().data() );
+	lua_pushstring( L, QXmppUtils::jidToResource( pkt.from() ).toUtf8().data() );
 	lua_settable( L, -3 );
 	lua_pushstring( L, "serverTime" );
 	lua_pushnumber( L, pkt.serverTime() );
@@ -106,7 +106,7 @@ void CLuaRunner::onRoomPresencePacket( const CRoomPresencePacket &pkt )
 	lua_pushstring( L, pkt.who().toUtf8().data() );
 	lua_settable( L, -3 );
 	lua_pushstring( L, "nickName" );
-	lua_pushstring( L, jidToResource( pkt.who() ).toUtf8().data() );
+	lua_pushstring( L, QXmppUtils::jidToResource( pkt.who() ).toUtf8().data() );
 	lua_settable( L, -3 );
 	lua_pushstring( L, "presence" );
 	lua_pushinteger( L, ( int )pkt.presenceType() );
@@ -610,12 +610,12 @@ bool CLuaRunner::setupScript()
 	PRESENCE( Probe );
 
 #define STATUS( __i ) lua_pushinteger( L, ( int )QXmppPresence::Status::__i ); lua_setglobal( L, "STAT_" #__i )
-	STATUS( Offline );
 	STATUS( Online );
 	STATUS( Away );
 	STATUS( XA );
 	STATUS( DND );
 	STATUS( Chat );
+	STATUS( Invisible );
 
 	lua_register( L, "quit", LUACB_quit );
 	lua_register( L, "serialize", LUACB_serialize );
