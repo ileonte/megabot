@@ -1,10 +1,12 @@
+include(../../main.pri)
+
 QT -= core gui
 TEMPLATE = lib
 INCLUDEPATH += .
 QMAKE_CFLAGS_RELEASE = -pipe -ggdb -O0 -DLUA_USE_LINUX
 QMAKE_CFLAGS_DEBUG = -pipe -ggdb -O0 -DLUA_USE_LINUX
 CONFIG += dynamiclib
-TARGET = lua
+TARGET = $$MB_BUILD_DIR/lib/lua
 VERSION = 5
 
 SOURCES = lapi.c \

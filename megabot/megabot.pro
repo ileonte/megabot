@@ -5,7 +5,7 @@ QT       += core network xml
 
 QMAKE_CXXFLAGS = -pipe -ggdb -O0
 
-TARGET = megabot
+TARGET = $$MB_BUILD_DIR/bin/megabot.bin
 TEMPLATE = app
 
 INCLUDEPATH += ../libs/qxmpp/src/base ../libs/qxmpp/src/client ../libs/lua
