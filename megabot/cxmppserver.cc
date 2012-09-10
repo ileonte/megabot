@@ -8,9 +8,6 @@
 #include <QXmppVersionManager.h>
 #include <QXmppGlobal.h>
 
-#include <parser.h>
-#include <serializer.h>
-
 CXMPPServer::CXMPPServer( const QString &handle, QObject *parent ) : QObject( parent )
 {
 	m_handle = handle;

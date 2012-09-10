@@ -5,9 +5,9 @@
 #include "cscriptcontroller.h"
 
 #include <QVariant>
+#include <json.h>
 
-#include <parser.h>
-#include <serializer.h>
+using namespace QtJson;
 
 void CMegaBot::writeDummyConfig( const QString &path PNU )
 {
@@ -166,7 +166,6 @@ bool CMegaBot::initMaster( bool dofork )
 		m_forked = true;
 	}
 
-	QJson::Parser parser;
 	QFile config( "config.json" );
 	bool ok = false;
 
@@ -174,9 +173,9 @@ bool CMegaBot::initMaster( bool dofork )
 		LOG( fmt( "Failed to open config file: %1" ).arg( config.errorString() ) );
 		return false;
 	}
-	QVariantMap result = parser.parse( config.readAll(), &ok ).toMap();
+	QVariantMap result = Json::parse( config.readAll(), ok ).toMap();
 	if ( !ok ) {
-		LOG( fmt( "Failed to parse config file: %1" ).arg( parser.errorString() ) );
+		LOG( fmt( "Failed to parse config file" ) );
 		return false;
 	}
 
