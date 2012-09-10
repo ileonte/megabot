@@ -5,6 +5,8 @@
 
 #include <QXmppUtils.h>
 #include <QXmppMessage.h>
+#include <QXmppVersionManager.h>
+#include <QXmppGlobal.h>
 
 #include <parser.h>
 #include <serializer.h>
@@ -15,6 +17,10 @@ CXMPPServer::CXMPPServer( const QString &handle, QObject *parent ) : QObject( pa
 	m_client = new QXmppClient;
 	m_mucman = new QXmppMucManager;
 	m_userDisconnect = false;
+
+	m_client->versionManager().setClientName( "MegaBot/QXmpp" );
+	m_client->versionManager().setClientVersion( "0.4.0/" + QXmppVersion() );
+	m_client->versionManager().setClientOs( "Linux" );
 
 	m_client->addExtension( m_mucman );
 }
