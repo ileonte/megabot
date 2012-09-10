@@ -10,6 +10,7 @@ class CXMPPServer : public QObject
 	Q_OBJECT
 
 private:
+	QString    m_handle;
 	QString    m_host;
 	QString    m_domain;
 	QString    m_account;
@@ -35,7 +36,7 @@ private slots:
 	void presenceReceived( const QXmppPresence &presence );
 
 public:
-	CXMPPServer( QObject *parent = 0 );
+	CXMPPServer( const QString &handle, QObject *parent = 0 );
 	~CXMPPServer( void );
 
 	bool isEmpty() const {
@@ -53,6 +54,8 @@ public:
 		return m_account + "@" + m_host;
 	}
 	bool setJid( const QString &jid );
+
+	QString handle() const { return m_handle; }
 
 	QString host() const { return m_host; }
 	void setHost( const QString &v ) { m_host = v; m_domain = v; }

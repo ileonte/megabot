@@ -586,8 +586,8 @@ bool CLuaRunner::setupScript()
 {
 	int r = 0;
 
-	QString moduleSearchPath( fmt( ";;%1/scripts/modules/?.lua" ).arg( myApp->basePath() ) );
-	QString moduleSearchCPath( fmt( ";;%1/scripts/modules/lib?.so" ).arg( myApp->basePath() ) );
+	QString moduleSearchPath( fmt( ";;%1/share/lib/lua/?.lua" ).arg( myApp->basePath() ) );
+	QString moduleSearchCPath( fmt( ";;%1/share/lib/lua/lib?.so" ).arg( myApp->basePath() ) );
 	setenv( "LUA_PATH", moduleSearchPath.toUtf8().data(), 1 );
 	setenv( "LUA_CPATH", moduleSearchCPath.toUtf8().data(), 1 );
 

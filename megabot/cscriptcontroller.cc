@@ -73,6 +73,7 @@ bool CScriptController::runScript()
 		setenv( "MEGABOT_SERVER",         m_room->server()->conferenceHost().toUtf8().data(), 1 );
 		setenv( "MEGABOT_ROOM",           m_room->roomName().toUtf8().data(),                 1 );
 		setenv( "MEGABOT_NICKNAME",       m_room->nickName().toUtf8().data(),                 1 );
+		setenv( "MEGABOT_BASEPATH",       myApp->basePath().toUtf8().data(),                  1 );
 		QString pname = QString( "%1[%2]" ).arg( MB_SCRIPT_RUNNER_NAME ).arg( m_room->bareJid() );
 		char * args[] = { strdup( ( char * )pname.toUtf8().data() ), m_script.toUtf8().data(), NULL };
 		execvp( myApp->applicationFilePath().toUtf8().data(), args );

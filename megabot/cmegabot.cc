@@ -4,39 +4,13 @@
 #include "cscriptrunner.h"
 #include "cscriptcontroller.h"
 
-void CMegaBot::writeDummyConfig( const QString &path )
+#include <QVariant>
+
+#include <parser.h>
+#include <serializer.h>
+
+void CMegaBot::writeDummyConfig( const QString &path PNU )
 {
-	QSettings setts( path, QSettings::NativeFormat );
-	setts.clear();
-
-	setts.beginWriteArray( "Servers" );
-	CXMPPServer *server = new CXMPPServer;
-	setts.setArrayIndex( 0 );
-	setts.setValue( "host",           server->host() );
-	setts.setValue( "domain",         server->domain() );
-	setts.setValue( "account",        server->account() );
-	setts.setValue( "resource",       server->resource() );
-	setts.setValue( "password",       server->password() );
-	setts.setValue( "conferenceHost", server->conferenceHost() );
-
-	setts.beginWriteArray( "rooms" );
-	CXMPPRoom *room = new CXMPPRoom( server );
-	setts.setArrayIndex( 0 );
-	setts.setValue( "roomName", room->roomName() );
-	setts.setValue( "nickName", room->nickName() );
-	setts.setValue( "password", room->password() );
-	setts.endArray();
-	setts.endArray();
-
-	delete room;
-	delete server;
-
-	setts.sync();
-
-	if ( setts.status() == QSettings::NoError )
-		LOG( fmt( "Wrote dummy config file to '%1'" ).arg( setts.fileName() ) );
-	else
-		LOG( fmt( "Failed to write config file '%1'" ).arg( setts.fileName() ) );
 }
 
 CMegaBot::CMegaBot( int &argc, char **argv ) : QCoreApplication( argc, argv )
@@ -192,55 +166,63 @@ bool CMegaBot::initMaster( bool dofork )
 		m_forked = true;
 	}
 
-	QSettings setts;
+	QJson::Parser parser;
+	QFile config( "config.json" );
+	bool ok = false;
+
+	if ( !config.open( QIODevice::ReadOnly ) ) {
+		LOG( fmt( "Failed to open config file: %1" ).arg( config.errorString() ) );
+		return false;
+	}
+	QVariantMap result = parser.parse( config.readAll(), &ok ).toMap();
+	if ( !ok ) {
+		LOG( fmt( "Failed to parse config file: %1" ).arg( parser.errorString() ) );
+		return false;
+	}
 
 	m_mode = Master;
 
-	LOG( fmt( "Reading config file '%1'" ).arg( setts.fileName() ) );
-
-	if ( !setts.contains( "basePath" ) ) {
-		m_basePath = QCoreApplication::applicationDirPath();
-		setts.setValue( "basePath", m_basePath );
-	} else {
-		m_basePath = setts.value( "basePath" ).toString();
+	m_basePath = result["basePath"].toString();
+	if ( m_basePath.isEmpty() ) {
+		LOG( "Missing 'basePath' configuration" );
+		return false;
 	}
-	LOG( fmt( "Base path: '%1'" ).arg( m_basePath ) );
 
-	m_logName = fmt( "%1/mblog.log" ).arg( m_basePath );
+	m_logName = fmt( "%1/var/log/mblog.log" ).arg( m_basePath );
 
-	int count = setts.beginReadArray( "Servers" );
-	for ( int i = 0; i < count; i++ ) {
-		setts.setArrayIndex( i );
+	foreach( const QVariant &vSrvName, result["servers"].toMap().keys() ) {
+		QString server_handle = vSrvName.toString();
+		if ( server_handle.isEmpty() ) continue;
 
-		CXMPPServer *server = new CXMPPServer( this );
-		if ( setts.contains( "host"           ) ) server->setHost( setts.value( "host" ).toString() );
-		if ( setts.contains( "domain"         ) ) server->setDomain( setts.value( "domain" ).toString() );
-		if ( setts.contains( "account"        ) ) server->setAccount( setts.value( "account" ).toString() );
-		if ( setts.contains( "resource"       ) ) server->setResource( setts.value( "resource" ).toString() );
-		if ( setts.contains( "password"       ) ) server->setPassword( setts.value( "password" ).toString() );
-		if ( setts.contains( "conferenceHost" ) ) server->setConferenceHost( setts.value( "conferenceHost" ).toString() );
+		QVariantMap mSrv = result["servers"].toMap().value( server_handle ).toMap();
+
+		CXMPPServer *server = new CXMPPServer( server_handle, this );
+		server->setHost( mSrv["host"].toString() );
+		server->setDomain( mSrv["domain"].toString() );
+		server->setAccount( mSrv["account"].toString() );
+		server->setResource( mSrv["resource"].toString() );
+		server->setPassword( mSrv["password"].toString() );
+		server->setConferenceHost( mSrv["conferenceHost"].toString() );
 		if ( server->isEmpty() ) {
 			delete server;
 			continue;
 		}
 
-		int roomCount = setts.beginReadArray( "rooms" );
-		for ( int j = 0; j < roomCount; j++ ) {
-			setts.setArrayIndex( j );
+		foreach ( const QString &roomName, mSrv["rooms"].toMap().keys() ) {
+			QVariantMap mRoom = mSrv["rooms"].toMap().value( roomName ).toMap();
+
 			CXMPPRoom *room = new CXMPPRoom( server );
-			if ( setts.contains( "roomName" ) ) room->setRoomName( setts.value( "roomName" ).toString() );
-			if ( setts.contains( "nickName" ) ) room->setNickName( setts.value( "nickName" ).toString() );
-			if ( setts.contains( "password" ) ) room->setPassword( setts.value( "password" ).toString() );
+			room->setRoomName( roomName );
+			room->setNickName( mRoom["nickName"].toString() );
+			room->setPassword( mRoom["password"].toString() );
 			room->setAutoJoin( true );
 			if ( room->isEmpty() ) {
 				delete room;
 				continue;
 			}
 
-			int scriptCount = setts.beginReadArray( "scripts" );
-			for ( int k = 0; k < scriptCount; k++ ) {
-				setts.setArrayIndex( k );
-				QString script_name = setts.value( "script" ).toString();
+			foreach ( const QVariant &vScript, mRoom["scripts"].toList() ) {
+				QString script_name = vScript.toString();
 				if ( script_name.isEmpty() ) continue;
 				CScriptController *script = room->findScript( script_name );
 				if ( !script ) {
@@ -249,17 +231,13 @@ bool CMegaBot::initMaster( bool dofork )
 					room->addScript( script );
 				}
 			}
-			setts.endArray();
 
 			server->addRoom( room );
 		}
 
 		m_servers.append( server );
 		connect( this, SIGNAL( configLoaded() ), server, SLOT( connectToServer() ) );
-
-		setts.endArray();
 	}
-	setts.endArray();
 
 	if ( !m_servers.size() ) {
 		LOG( "No valid server configuration found" );
@@ -271,24 +249,22 @@ bool CMegaBot::initMaster( bool dofork )
 	return true;
 }
 
-bool CMegaBot::initScriptRunner( const QString &script, int fd )
+bool CMegaBot::initScriptRunner( const QString &basePath, const QString &server, const QString &room, const QString &nickname, const QString &script, int fd )
 {
 	m_mode = ScriptRunner;
 
-	QSettings setts;
-	if ( !setts.contains( "basePath" ) )
-		m_basePath = QCoreApplication::applicationDirPath();
-	else
-		m_basePath = setts.value( "basePath" ).toString();
+	m_basePath = basePath;
 
-	QString fileName = fmt( "%1/scripts/%2" ).arg( m_basePath ).arg( script );
+	QString fileName = fmt( "%1/share/scripts/%2" ).arg( m_basePath ).arg( script );
 	LOG( fmt( "Running script '%1'" ).arg( fileName ) );
-	m_logName = fmt( "%1.log" ).arg( fileName );
+	m_logName = fmt( "%1/var/log/%2_%3_%4 - %5.log" ).arg( m_basePath ).arg( server ).arg( room ).arg( nickname ).arg( script );
 	LOG( fmt( "Script log file: '%1'" ).arg( m_logName ) );
 
 	m_forked = true;
 	if ( ( m_runner = createRunner( fileName, fd ) ) == NULL )
 		return false;
+
+	m_runner->setInitialConfig( server, room, nickname );
 
 	return true;
 }

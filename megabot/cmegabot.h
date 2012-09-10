@@ -27,6 +27,10 @@
 #define MB_SCRIPT_RUNNER_NAME "[megabot-script]"
 #define MB_KILL_SWITCH "/tmp/mb_kill_switch"
 
+#ifndef PNU
+#define PNU __attribute__(( unused ))
+#endif
+
 class CXMPPServer;
 class CScriptRunnerBase;
 
@@ -62,7 +66,7 @@ public:
 	void closeAllSockets( int except );
 
 	bool initMaster( bool dofork );
-	bool initScriptRunner( const QString &script, int fd );
+	bool initScriptRunner( const QString &basePath, const QString &server, const QString &room, const QString &nickname, const QString &script, int fd );
 
 	void quit();
 

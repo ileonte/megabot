@@ -6,8 +6,12 @@
 #include <QXmppUtils.h>
 #include <QXmppMessage.h>
 
-CXMPPServer::CXMPPServer( QObject *parent ) : QObject( parent )
+#include <parser.h>
+#include <serializer.h>
+
+CXMPPServer::CXMPPServer( const QString &handle, QObject *parent ) : QObject( parent )
 {
+	m_handle = handle;
 	m_client = new QXmppClient;
 	m_mucman = new QXmppMucManager;
 	m_userDisconnect = false;
@@ -96,7 +100,7 @@ CXMPPRoom *CXMPPServer::findRoom( const QString &bareJid )
 
 void CXMPPServer::clientConnected()
 {
-	LOG( fmt( "Connected to '%1'" ).arg( jid() ) );
+	LOG( fmt( "Connected to '%1' ( '%2' )" ).arg( jid() ).arg( m_handle ) );
 	for ( int i = 0; i < m_rooms.size(); i++ ) {
 		if ( m_rooms[i]->join() )
 			LOG( fmt( "Joined room '%1'" ).arg( m_rooms[i]->bareJid() ) );

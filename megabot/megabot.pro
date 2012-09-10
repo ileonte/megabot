@@ -8,8 +8,8 @@ QMAKE_CXXFLAGS = -pipe -ggdb -O0
 TARGET = $$MB_BUILD_DIR/bin/megabot.bin
 TEMPLATE = app
 
-INCLUDEPATH += ../libs/qxmpp/src/base ../libs/qxmpp/src/client ../libs/lua
-LIBS += ../libs/qxmpp/src/libqxmpp.a -L$$MB_BASE_DIR/libs/lua -lm -llua -ldl -lpthread
+INCLUDEPATH += ../libs/qxmpp/src/base ../libs/qxmpp/src/client ../libs/lua ../libs/qjson/src
+LIBS += ../libs/qxmpp/src/libqxmpp.a ../libs/qjson/lib/libqjson.a -L$$MB_BASE_DIR/libs/lua -lm -llua -ldl -lpthread
 QMAKE_LFLAGS += -Wl,-rpath,$$MB_BASE_DIR/libs/lua
 
 SOURCES += main.cc \
@@ -36,3 +36,5 @@ HEADERS  += \
 OTHER_FILES +=
 
 RESOURCES +=
+
+copyToDestdir($$MB_BUILD_DIR/share, scripts/*.lua)

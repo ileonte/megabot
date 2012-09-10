@@ -46,12 +46,14 @@ int main( int argc, char **argv )
 		char *sz_server = getenv( "MEGABOT_SERVER" );
 		char *sz_room   = getenv( "MEGABOT_ROOM" );
 		char *sz_nick   = getenv( "MEGABOT_NICKNAME" );
+		char *sz_path   = getenv( "MEGABOT_BASEPATH" );
 		QString error   = "";
 
 		if ( !sz_fd     ) error += " MEGABOT_CONTROL_SOCKET";
 		if ( !sz_server ) error += " MEGABOT_SERVER";
 		if ( !sz_room   ) error += " MEGABOT_ROOM";
 		if ( !sz_nick   ) error += " MEGABOT_NICKNAME";
+		if ( !sz_path   ) error += " MEGABOT_BASEPATH";
 		if ( !error.isEmpty() ) {
 			LOG( fmt( "SCRIPT RUNNER: missing the following env variable(s):%1" ).arg( error ) );
 			return 2;
@@ -66,16 +68,15 @@ int main( int argc, char **argv )
 		QString qserver   = QString( sz_server ).trimmed();
 		QString qroom     = QString( sz_room ).trimmed();
 		QString qnickname = QString( sz_nick ).trimmed();
+		QString qbasepath = QString( sz_path ).trimmed();
 
-		if ( qserver.isEmpty() || qroom.isEmpty() || qnickname.isEmpty() ) {
+		if ( qserver.isEmpty() || qroom.isEmpty() || qnickname.isEmpty() || qbasepath.isEmpty() ) {
 			LOG( "SCRIPT RUNNER: invalid script params" );
 			return 2;
 		}
 
-		if ( !a.initScriptRunner( argv[1], fd ) )
+		if ( !a.initScriptRunner( qbasepath, qserver, qroom, qnickname, argv[1], fd ) )
 			return 1;
-
-		a.scriptRunner()->setInitialConfig( qserver, qroom, qnickname );
 
 		return a.exec();
 	}
@@ -89,7 +90,7 @@ int main( int argc, char **argv )
 		} else {
 			if ( !a.initMaster( false ) ) return 1;
 		}
-		LOG( fmt( "Entering main loop" ) );
+
 		return a.exec();
 	} else if ( argc == 2 && !strcmp( "-k", argv[1] ) ) {
 		a.triggerKillSwitch();
