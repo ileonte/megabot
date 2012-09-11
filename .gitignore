@@ -1,0 +1,8 @@
+build/*
+*.o
+Makefile
+moc_*.cpp
+*.a
+*.prl
+*.pro.user
+
