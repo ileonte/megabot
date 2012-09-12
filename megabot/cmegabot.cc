@@ -60,17 +60,18 @@ bool CMegaBot::loadConfig()
 {
 	QFileInfo fi[] = { QString( "/etc/MegaBot/config.json" ), m_basePath + "/etc/config.json" };
 	bool ok = false;
+	QStringList errors;
 
 	for ( unsigned i = 0; i < sizeof( fi ) / sizeof( fi[0] ); i++ ) {
 		QFile config( fi[i].absoluteFilePath() );
 
 		if ( !config.open( QIODevice::ReadOnly ) ) {
-			LOG( fmt( "Failed to open '%1': %2" ).arg( fi[i].absoluteFilePath() ).arg( config.errorString() ) );
+			errors.append( fmt( "Failed to open '%1': %2" ).arg( fi[i].absoluteFilePath() ).arg( config.errorString() ) );
 			continue;
 		}
 		m_config = Json::parse( config.readAll(), ok ).toMap();
 		if ( !ok ) {
-			LOG( fmt( "Failed to parse file '%1'" ).arg( fi[i].absoluteFilePath() ) );
+			errors.append( fmt( "Failed to parse file '%1'" ).arg( fi[i].absoluteFilePath() ) );
 			continue;
 		}
 
@@ -78,6 +79,7 @@ bool CMegaBot::loadConfig()
 		return true;
 	}
 
+	foreach ( const QString &err, errors ) LOG( err );
 	return false;
 }
 
