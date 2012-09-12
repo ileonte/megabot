@@ -12,7 +12,6 @@ static void SIGINT_handler( int )
 
 static void print_usage()
 {
-	QSettings setts;
 	printf( "Usage:\n" );
 	printf( "  megabot <options>\n" );
 	printf( "\n" );

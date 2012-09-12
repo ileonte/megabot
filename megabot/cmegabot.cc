@@ -20,47 +20,6 @@ CMegaBot::CMegaBot( int &argc, char **argv ) : QCoreApplication( argc, argv )
 CMegaBot::~CMegaBot( void )
 {
 	if ( m_mode == Master ) {
-		QSettings setts;
-
-		setts.beginWriteArray( "Servers" );
-		for ( int i = 0; i < m_servers.size(); i++ ) {
-			CXMPPServer *server = m_servers[i];
-
-			setts.setArrayIndex( i );
-			setts.setValue( "host",           server->host() );
-			setts.setValue( "domain",         server->domain() );
-			setts.setValue( "account",        server->account() );
-			setts.setValue( "resource",       server->resource() );
-			setts.setValue( "password",       server->password() );
-			setts.setValue( "conferenceHost", server->conferenceHost() );
-
-			setts.remove( "rooms" );
-			setts.beginWriteArray( "rooms" );
-			int k = 0;
-			for ( int j = 0; j < server->m_rooms.size(); j++ ) {
-				CXMPPRoom *room = server->m_rooms[j];
-				if ( !room->autoJoin() ) continue;
-
-				setts.setArrayIndex( k++ );
-				setts.setValue( "roomName", room->roomName() );
-				setts.setValue( "nickName", room->nickName() );
-				setts.setValue( "password", room->password() );
-
-				int m = 0;
-				setts.beginWriteArray( "scripts" );
-				for ( int n = 0; n < room->m_scripts.size(); n++ ) {
-					CScriptController *script = room->m_scripts[n];
-					if ( !script->autoRun() ) continue;
-
-					setts.setArrayIndex( m++ );
-					setts.setValue( "script", script->script() );
-				}
-				setts.endArray();
-			}
-			setts.endArray();
-		}
-		setts.endArray();
-
 		for ( int i = 0; i < m_servers.size(); i++ )
 			delete m_servers[i];
 		m_servers.clear();

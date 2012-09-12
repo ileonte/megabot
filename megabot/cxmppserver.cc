@@ -156,13 +156,9 @@ bool CXMPPServer::checkLoggedIn( const QString &jid ) const
 	return m_loggedInUsers.contains( jid );
 }
 
-bool CXMPPServer::checkUsernameAndPassword( const QString &username, const QString &password )
+bool CXMPPServer::checkUsernameAndPassword( const QString &username PNU, const QString &password PNU )
 {
-	QSettings setts;
-	setts.beginGroup( "Users" );
-	if ( !setts.contains( username ) ) return false;
-	if ( setts.value( username ).toString() != password ) return false;
-	return true;
+	return false;
 }
 
 void CXMPPServer::handleBotCommand( const QXmppMessage &msg )

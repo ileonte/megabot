@@ -10,7 +10,6 @@
 #include <QCoreApplication>
 #include <QLocalSocket>
 #include <QLocalServer>
-#include <QSettings>
 #include <QFile>
 #include <QList>
 #include <QMap>
