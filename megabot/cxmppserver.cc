@@ -156,9 +156,12 @@ bool CXMPPServer::checkLoggedIn( const QString &jid ) const
 	return m_loggedInUsers.contains( jid );
 }
 
-bool CXMPPServer::checkUsernameAndPassword( const QString &username PNU, const QString &password PNU )
+bool CXMPPServer::checkUsernameAndPassword( const QString &username, const QString &password )
 {
-	return false;
+	if ( botInstance->config()["servers"].toMap().value( m_handle ).toMap().value( "users" ).toMap().value( username ).toString() == password )
+		return true;
+
+	return botInstance->config()["users"].toMap().value( username ).toString() == password;
 }
 
 void CXMPPServer::handleBotCommand( const QXmppMessage &msg )

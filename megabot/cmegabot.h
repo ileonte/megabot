@@ -82,8 +82,6 @@ public:
 
 	void quit();
 
-	void writeDummyConfig( const QString &path );
-
 	QString basePath() const { return m_basePath; }
 	QString scriptPath() const { return m_scriptPath; }
 	QString logPath() const { return m_logPath; }

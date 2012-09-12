@@ -6,10 +6,6 @@
 
 using namespace QtJson;
 
-void CMegaBot::writeDummyConfig( const QString &path PNU )
-{
-}
-
 CMegaBot::CMegaBot( int &argc, char **argv ) : QCoreApplication( argc, argv )
 {
 	m_mode   = Unknown;
@@ -41,7 +37,6 @@ void CMegaBot::triggerKillSwitch()
 	ks.write( "quit" );
 	ks.waitForBytesWritten( -1 );
 
-	LOG( "Kill-switch triggered" );
 	ks.disconnectFromServer();
 }
 
@@ -86,7 +81,7 @@ bool CMegaBot::loadConfig()
 	return false;
 }
 
-bool CMegaBot::initMaster(bool dofork, const QString &basePath )
+bool CMegaBot::initMaster( bool dofork, const QString &basePath )
 {
 	m_mode = Master;
 
