@@ -5,7 +5,7 @@
 #include <qmath.h>
 #include <ctype.h>
 
-CLuaRunner::CLuaRunner( const QString &name, int fd, QObject *parent ) : CScriptRunnerBase( name, fd, parent )
+CLuaRunner::CLuaRunner( const QString &handle, const QString &name, int fd, QObject *parent ) : CScriptRunnerBase( handle, name, fd, parent )
 {
 	L = NULL;
 }
@@ -41,7 +41,7 @@ void CLuaRunner::onRoomConfigPacket( const CRoomConfigPacket &pkt )
 	lua_getglobal( L, "handle_room_config" );
 	if ( !lua_isfunction( L, -1 ) ) {
 		LOG( "handle_room_config() is NOT a function" );
-		myApp->quit();
+		botInstance->quit();
 		return;
 	}
 	lua_newtable( L );
@@ -68,7 +68,7 @@ void CLuaRunner::onRoomMessagePacket( const CRoomMessagePacket &pkt )
 	lua_getglobal( L, "handle_room_message" );
 	if ( !lua_isfunction( L, -1 ) ) {
 		LOG( "handle_room_message() is NOT a function" );
-		myApp->quit();
+		botInstance->quit();
 		return;
 	}
 	lua_newtable( L );
@@ -98,7 +98,7 @@ void CLuaRunner::onRoomPresencePacket( const CRoomPresencePacket &pkt )
 	lua_getglobal( L, "handle_room_presence" );
 	if ( !lua_isfunction( L, -1 ) ) {
 		LOG( "handle_room_presence() is NOT a function" );
-		myApp->quit();
+		botInstance->quit();
 		return;
 	}
 	lua_newtable( L );
@@ -131,7 +131,7 @@ void CLuaRunner::onNetworkRequestFinished( bool allOk, const QString &name, cons
 	lua_getglobal( L, "handle_network_reply" );
 	if ( !lua_isfunction( L, -1 ) ) {
 		LOG( "handle_network_reply is NOT a function" );
-		myApp->quit();
+		botInstance->quit();
 		return;
 	}
 
@@ -159,7 +159,7 @@ void CLuaRunner::onTimerTimeout( const QString &name )
 	lua_getglobal( L, "handle_timer_event" );
 	if ( !lua_isfunction( L, -1 ) ) {
 		LOG( "handle_timer_event is NOT a function" );
-		myApp->quit();
+		botInstance->quit();
 		return;
 	}
 
@@ -200,7 +200,7 @@ static int LUACB_log( lua_State *L )
 {
 	const char *msg = luaL_checkstring( L, 1 );
 	if ( msg )
-		LOG( fmt( "%1" ).arg( msg ) );
+		OLOG( global_runner, fmt( "%1" ).arg( msg ) );
 
 	return 0;
 }
@@ -559,7 +559,7 @@ static int LUACB_settimer( lua_State *L )
 
 static int LUACB_quit( lua_State * )
 {
-	myApp->quit();
+	botInstance->quit();
 	return 0;
 }
 
@@ -586,16 +586,17 @@ bool CLuaRunner::setupScript()
 {
 	int r = 0;
 
-	QString moduleSearchPath( fmt( ";;%1/share/lib/lua/?.lua" ).arg( myApp->basePath() ) );
-	QString moduleSearchCPath( fmt( ";;%1/share/lib/lua/lib?.so" ).arg( myApp->basePath() ) );
+	QString fileName( fmt( "%1/%2" ).arg( botInstance->scriptPath() ).arg( m_script ) );
+	QString moduleSearchPath( fmt( ";;%1/share/lib/lua/?.lua" ).arg( botInstance->basePath() ) );
+	QString moduleSearchCPath( fmt( ";;%1/share/lib/lua/lib?.so" ).arg( botInstance->basePath() ) );
 	setenv( "LUA_PATH", moduleSearchPath.toUtf8().data(), 1 );
 	setenv( "LUA_CPATH", moduleSearchCPath.toUtf8().data(), 1 );
 
 	L = luaL_newstate();
 	luaL_openlibs( L );
 
-	if ( ( r = luaL_loadfile( L, m_script.toUtf8().data() ) ) != 0 ) {
-		LOG( fmt( "luaL_loadfile( '%1' ): ( %2 ) %3" ).arg( m_script ).arg( r ).arg( getLuaError() ) );
+	if ( ( r = luaL_loadfile( L, fileName.toUtf8().data() ) ) != 0 ) {
+		LOG( fmt( "luaL_loadfile( '%1' ): ( %2 ) %3" ).arg( fileName ).arg( r ).arg( getLuaError() ) );
 		return false;
 	}
 

@@ -3,100 +3,105 @@
 #include "cxmpproom.h"
 #include "cscriptrunner.h"
 
+#include <getopt.h>
+
 static void SIGINT_handler( int )
 {
-	if ( myApp ) {
-		LOG( "Quiting" );
-		myApp->quit();
-	}
+	if ( botInstance ) botInstance->quit();
 }
 
 static void print_usage()
 {
 	QSettings setts;
 	printf( "Usage:\n" );
-	printf( "  megabot -D|-C|-w <path>\n" );
+	printf( "  megabot <options>\n" );
 	printf( "\n" );
 	printf( "Options:\n" );
-	printf( "  -D        - detach from the console and run in the background (daemon)\n" );
-	printf( "  -C        - do NOT detach from the console\n" );
-	printf( "  -w <path> - write a dummy (empty) config file to the file specified by\n" );
-	printf( "              'path'. The default config file name is:\n  %s\n", setts.fileName().toUtf8().data() );
+	printf( "  -s, --start         - start the bot\n" );
+	printf( "  -d, --no-daemon     - do NOT detach from the console\n" );
+	printf( "  -k, --stop          - stop running bot instance\n");
+	printf( "  -b <path>           - set the base path to 'path'\n" );
+	printf( "    --basepath <path>\n" );
 }
 
 int main( int argc, char **argv )
 {
-	QCoreApplication::setApplicationName( "MegaBot" );
-	QCoreApplication::setOrganizationName( "[LtK]Studios" );
-	QCoreApplication::setOrganizationDomain( "gargoylle.net" );
+	char *args[] = { argv[0], NULL };
+	int   acnt   = 1;
+	CMegaBot bot( acnt, args );
+
+	struct option opts[] = {
+		{ "start",      no_argument,       NULL, 's' },
+		{ "stop",       no_argument,       NULL, 'k' },
+		{ "no-daemon",  no_argument,       NULL, 'd' },
+		{ "basepath",   required_argument, NULL, 'b' }
+	};
+	QString optstr = "+";
+	bool start = false, stop = false, fork = true;
+	QString basepath;
+	int opt;
+
+	for ( unsigned i = 0; i < sizeof( opts ) / sizeof( opts[0] ); i++ ) {
+		if ( !opts[i].val ) continue;
+
+		QString s( QChar( ( char )opts[i].val ) );
+		switch ( opts[i].has_arg ) {
+			case required_argument: {
+				s += ":";
+				break;
+			}
+			case optional_argument: {
+				s += "::";
+				break;
+			}
+			default: break;
+		}
+
+		optstr += s;
+	}
+
+	while ( ( opt = getopt_long( argc, argv, optstr.toUtf8().data(), opts, NULL ) ) != -1 ) {
+		switch ( opt ) {
+			case 's': {
+				start = true;
+				break;
+			}
+			case 'k': {
+				stop = true;
+				break;
+			}
+			case 'd': {
+				fork = false;
+				break;
+			}
+			case 'b': {
+				basepath = QString( optarg );
+				break;
+			}
+			default: {
+				print_usage();
+				return 1;
+			}
+		}
+	}
 
 	signal( SIGINT, SIGINT_handler );
 
-	char *args[] = { argv[0], NULL };
-	int   acnt   = 1;
-	CMegaBot a( acnt, args );
-
 	if ( QString( argv[0] ).startsWith( MB_SCRIPT_RUNNER_NAME ) ) {
-		if ( argc != 2 ) {
-			LOG( "SCRIPT RUNNER: invalid usage" );
+		if ( !bot.initScriptRunner() ) return 1;
+	} else {
+		if ( !start && !stop ) {
+			print_usage();
 			return 1;
 		}
 
-		char *sz_fd     = getenv( "MEGABOT_CONTROL_SOCKET" );
-		char *sz_server = getenv( "MEGABOT_SERVER" );
-		char *sz_room   = getenv( "MEGABOT_ROOM" );
-		char *sz_nick   = getenv( "MEGABOT_NICKNAME" );
-		char *sz_path   = getenv( "MEGABOT_BASEPATH" );
-		QString error   = "";
-
-		if ( !sz_fd     ) error += " MEGABOT_CONTROL_SOCKET";
-		if ( !sz_server ) error += " MEGABOT_SERVER";
-		if ( !sz_room   ) error += " MEGABOT_ROOM";
-		if ( !sz_nick   ) error += " MEGABOT_NICKNAME";
-		if ( !sz_path   ) error += " MEGABOT_BASEPATH";
-		if ( !error.isEmpty() ) {
-			LOG( fmt( "SCRIPT RUNNER: missing the following env variable(s):%1" ).arg( error ) );
-			return 2;
-		}
-		bool ok = true;
-		int fd = QString( sz_fd ).toInt( &ok );
-		if ( !ok || ( ok && fd < 0 ) ) {
-			LOG( fmt( "SCRIPT RUNNER: invalid MEGABOT_CONTROL_SOCKET '%1'" ).arg( sz_fd ) );
-			return 2;
+		if ( stop ) {
+			bot.triggerKillSwitch();
+			return 0;
 		}
 
-		QString qserver   = QString( sz_server ).trimmed();
-		QString qroom     = QString( sz_room ).trimmed();
-		QString qnickname = QString( sz_nick ).trimmed();
-		QString qbasepath = QString( sz_path ).trimmed();
-
-		if ( qserver.isEmpty() || qroom.isEmpty() || qnickname.isEmpty() || qbasepath.isEmpty() ) {
-			LOG( "SCRIPT RUNNER: invalid script params" );
-			return 2;
-		}
-
-		if ( !a.initScriptRunner( qbasepath, qserver, qroom, qnickname, argv[1], fd ) )
-			return 1;
-
-		return a.exec();
+		if ( !bot.initMaster( fork, basepath ) ) return 1;
 	}
 
-	if ( argc == 3 && !strcmp( argv[1], "-w" ) ) {
-		a.writeDummyConfig( argv[2] );
-		return 0;
-	} else if ( argc == 2 && ( !strcmp( "-D", argv[1] ) || ( !strcmp( "-C", argv[1] ) ) ) ) {
-		if ( !strcmp( "-D", argv[1] ) ) {
-			if ( !a.initMaster( true ) ) return 1;
-		} else {
-			if ( !a.initMaster( false ) ) return 1;
-		}
-
-		return a.exec();
-	} else if ( argc == 2 && !strcmp( "-k", argv[1] ) ) {
-		a.triggerKillSwitch();
-		return 0;
-	}
-
-	print_usage();
-	return 1;
+	return bot.exec();
 }

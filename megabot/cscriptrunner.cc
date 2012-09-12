@@ -4,11 +4,12 @@
 
 CScriptRunnerBase *global_runner = NULL;
 
-CScriptRunnerBase::CScriptRunnerBase( const QString &name, int fd, QObject *parent ) : QObject( parent )
+CScriptRunnerBase::CScriptRunnerBase( const QString &handle, const QString &name, int fd, QObject *parent ) : QObject( parent )
 {
 	m_networkRequestCount = 0;
 	m_timerCount = 0;
 
+	m_handle = handle;
 	m_script = name;
 	m_comm = new QLocalSocket( this );
 	if ( !m_comm->setSocketDescriptor( fd ) )
@@ -60,7 +61,7 @@ void CScriptRunnerBase::socketReadyRead()
 			}
 			default: {
 				LOG( fmt( "Got invalid message type %1, exiting" ).arg( t ) );
-				myApp->quit();
+				botInstance->quit();
 				return;
 			}
 		}
@@ -70,7 +71,7 @@ void CScriptRunnerBase::socketReadyRead()
 void CScriptRunnerBase::socketDisconnected()
 {
 	LOG( "Control socket disconnected, quitting" );
-	myApp->quit();
+	botInstance->quit();
 	return;
 }
 
@@ -189,11 +190,11 @@ void CScriptRunnerBase::createTimer( const QString &name, int timeout )
 	}
 }
 
-CScriptRunnerBase *createRunner( const QString &name, int fd )
+CScriptRunnerBase *createRunner( const QString &handle, const QString &name, int fd )
 {
 	CScriptRunnerBase *r = NULL;
-	if ( name.endsWith( ".lua", Qt::CaseInsensitive ) ) r = new CLuaRunner( name, fd );
-	else r = new CScriptRunnerBase( name, fd );
+	if ( name.endsWith( ".lua", Qt::CaseInsensitive ) ) r = new CLuaRunner( handle, name, fd );
+	else return NULL;
 
 	if ( !r->setupScript() ) {
 		delete r;

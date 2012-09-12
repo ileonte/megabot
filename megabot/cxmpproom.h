@@ -68,6 +68,8 @@ public slots:
 	void handleRoomMessage( const QXmppMessage &msg );
 
 	void say( const QString &what ) { if ( m_mucroom ) m_mucroom->sendMessage( what ); }
+
+	QString logHandle() { return fmt( "%1/%2" ).arg( m_server->logHandle() ).arg( m_roomName ); }
 };
 
 #endif  /* __CROOMCONFIG_H_INCLUDED__ */

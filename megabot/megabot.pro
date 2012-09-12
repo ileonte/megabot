@@ -20,7 +20,8 @@ SOURCES += main.cc \
     cscriptcontroller.cc \
     cmegabot.cc \
     cluarunner.cc \
-    utils.cc
+    utils.cc \
+    clogger.cc
 
 HEADERS  += \
     main.h \
@@ -31,7 +32,8 @@ HEADERS  += \
     cmegabot.h \
     cscriptcontroller.h \
     cscriptrunner.h \
-    cluarunner.h
+    cluarunner.h \
+    clogger.h
 
 OTHER_FILES +=
 

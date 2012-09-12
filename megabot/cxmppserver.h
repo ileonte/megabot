@@ -34,6 +34,7 @@ private slots:
 	void clientDisconnected();
 	void messageReceived( const QXmppMessage &msg );
 	void presenceReceived( const QXmppPresence &presence );
+	void qxmppLogEvent( const QXmppLogger::MessageType &type, const QString &msg );
 
 public:
 	CXMPPServer( const QString &handle, QObject *parent = 0 );
@@ -84,6 +85,8 @@ public:
 public slots:
 	void connectToServer();
 	void disconnectFromServer();
+
+	QString logHandle() { return m_handle; }
 };
 
 #endif  /* __CSERVERCONFIG_H_INCLUDED__ */

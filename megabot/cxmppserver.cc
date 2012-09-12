@@ -76,7 +76,7 @@ void CXMPPServer::connectToServer()
 	QXmppLogger *logger = new QXmppLogger( m_client );
 	logger->setLoggingType( QXmppLogger::SignalLogging );
 	logger->setMessageTypes( QXmppLogger::DebugMessage | QXmppLogger::InformationMessage | QXmppLogger::WarningMessage );
-	connect( logger, SIGNAL( message( QXmppLogger::MessageType, QString ) ), myApp, SLOT( qxmppLogEvent( QXmppLogger::MessageType, QString ) ) );
+	connect( logger, SIGNAL( message( QXmppLogger::MessageType, QString ) ), this, SLOT( qxmppLogEvent( QXmppLogger::MessageType, QString ) ) );
 	m_client->setLogger( logger );
 
 	m_client->connectToServer( cfg, pres );
@@ -92,6 +92,30 @@ void CXMPPServer::disconnectFromServer()
 		}
 		m_client->disconnectFromServer();
 	}
+}
+
+void CXMPPServer::qxmppLogEvent( const QXmppLogger::MessageType &type, const QString &msg )
+{
+	QString st = "";
+	switch ( type ) {
+		case QXmppLogger::DebugMessage: {
+			st = "DBG";
+			break;
+		}
+		case QXmppLogger::InformationMessage: {
+			st = "INF";
+			break;
+		}
+		case QXmppLogger::WarningMessage: {
+			st = "WRN";
+			break;
+		}
+		default: {
+			break;
+		}
+	}
+
+	LOG( fmt( "[QXmpp - %1] %2").arg( st ).arg( msg ) );
 }
 
 CXMPPRoom *CXMPPServer::findRoom( const QString &bareJid )
@@ -119,11 +143,11 @@ void CXMPPServer::clientDisconnected()
 		m_rooms[i]->part();
 
 	if ( !m_userDisconnect ) {
-		LOG( "Attempting to reconnect to the server" );
+		LOG( "Scheduling reconnect event ( 10 seconds )" );
 		m_client->deleteLater();
 		m_client = new QXmppClient;
 		m_client->addExtension( m_mucman );
-		connectToServer();
+		QTimer::singleShot( 10000, this, SLOT( connectToServer() ) );
 	}
 }
 
@@ -374,7 +398,7 @@ void CXMPPServer::handleBotCommand( const QXmppMessage &msg )
 			return;
 		}
 		LOG( fmt( "Shutdown initiated by user '%1 (%2)'" ).arg( m_loggedInUsers[msg.from()] ).arg( msg.from() ) );
-		myApp->quit();
+		botInstance->quit();
 		return;
 	}
 }

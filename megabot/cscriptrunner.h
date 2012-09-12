@@ -29,6 +29,7 @@ class CScriptRunnerBase : public QObject
 
 protected:
 	QString       m_script;
+	QString       m_handle;
 	QLocalSocket *m_comm;
 	QByteArray    m_sockData;
 	QString       m_roomJid;
@@ -60,7 +61,7 @@ protected:
 	virtual void onTimerTimeout( const QString &name );
 
 public:
-	CScriptRunnerBase( const QString &name, int fd, QObject *parent = 0 );
+	CScriptRunnerBase( const QString &handle, const QString &name, int fd, QObject *parent = 0 );
 	~CScriptRunnerBase();
 
 	virtual bool setupScript() { return true; }
@@ -81,9 +82,12 @@ public:
 		m_nickName = nickname;
 		m_roomJid  = fmt( "%1@%2" ).arg( room ).arg( server );
 	}
+
+public slots:
+	QString logHandle() { return m_handle; }
 };
 
 extern CScriptRunnerBase *global_runner;
-CScriptRunnerBase *createRunner( const QString &name, int fd );
+CScriptRunnerBase *createRunner( const QString &handle, const QString &name, int fd );
 
 #endif // __CSCRIPTRUNNER_H_INCLUDED__

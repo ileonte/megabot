@@ -14,6 +14,10 @@
 #include <QFile>
 #include <QList>
 #include <QMap>
+#include <QFileInfo>
+#include <QVariant>
+
+#include <json.h>
 
 #include <QXmppUtils.h>
 #include <QXmppClient.h>
@@ -47,8 +51,13 @@ private:
 
 	Mode                  m_mode;
 	bool                  m_forked;
+
 	QString               m_basePath;
-	QString               m_logName;
+	QString               m_scriptPath;
+	QString               m_logPath;
+
+	QString               m_configPath;
+	QVariantMap           m_config;
 	QList<CXMPPServer *>  m_servers;
 
 	CScriptRunnerBase    *m_runner;
@@ -59,33 +68,46 @@ private slots:
 	void newKillSwitchConnection();
 	void dataOnKillSwitchConnection();
 
+	bool loadConfig();
+
 public:
 	CMegaBot( int &argc, char **argv );
 	~CMegaBot( void );
 
 	void closeAllSockets( int except );
 
-	bool initMaster( bool dofork );
-	bool initScriptRunner( const QString &basePath, const QString &server, const QString &room, const QString &nickname, const QString &script, int fd );
+	bool initMaster( bool dofork, const QString &basePath = "" );
+	bool initScriptRunner();
+
+	bool forked() { return m_forked; }
 
 	void quit();
 
 	void writeDummyConfig( const QString &path );
 
 	QString basePath() const { return m_basePath; }
+	QString scriptPath() const { return m_scriptPath; }
+	QString logPath() const { return m_logPath; }
 
 	CScriptRunnerBase *scriptRunner() { return m_runner; }
 
 	void triggerKillSwitch();
 
+	static QString getEnv( const QString &var ) {
+		char *v = getenv( var.toUtf8().data() );
+		return QString( v ? v : "" ).trimmed();
+	}
+
+	QString configPath() { return m_configPath; }
+	const QVariantMap &config() { return m_config; }
+
 signals:
-	void configLoaded();
+	void botInitialized();
 
 public slots:
-	void log( int line, const QString &file, const QString &message );
-	void qxmppLogEvent( const QXmppLogger::MessageType &type, const QString &msg );
+	QString logHandle() { return QString( "megabot" ); }
 };
 
-#define myApp static_cast<CMegaBot *>( qApp )
+#define botInstance static_cast<CMegaBot *>( qApp )
 
 #endif // __CMEGABOT_H_INCLUDED__

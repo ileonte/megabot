@@ -34,10 +34,13 @@ protected:
 	virtual void onTimerTimeout( const QString &name );
 
 public:
-	CLuaRunner( const QString &name, int fd, QObject *parent = 0 );
+	CLuaRunner( const QString &handle, const QString &name, int fd, QObject *parent = 0 );
 	~CLuaRunner();
 
 	virtual bool setupScript();
+
+public slots:
+	QString logHandle() { return m_handle; }
 };
 
 #endif // __CLUARUNNER_H_INCLUDED__

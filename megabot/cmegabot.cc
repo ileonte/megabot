@@ -4,9 +4,6 @@
 #include "cscriptrunner.h"
 #include "cscriptcontroller.h"
 
-#include <QVariant>
-#include <json.h>
-
 using namespace QtJson;
 
 void CMegaBot::writeDummyConfig( const QString &path PNU )
@@ -72,24 +69,6 @@ CMegaBot::~CMegaBot( void )
 	}
 }
 
-void CMegaBot::log( int line, const QString &file, const QString &message )
-{
-	QString msg = QString( "[ %1 ][ %2:%3 ] %4" ).arg( getpid(), 5 ).arg( file, 21 ).arg( line, 4 ).arg( message );
-	if ( m_forked ) {
-		msg += "\n";
-		FILE *f = fopen( m_logName.toUtf8().data(), "a+" );
-		if ( f ) {
-			fprintf( f, "%s", msg.toUtf8().data() );
-			fclose( f );
-		}
-	} else {
-		if ( m_mode == Master )
-			printf( "\x1b[40m\x1b[36m%s\x1b[0m\n", msg.toUtf8().data() );
-		else
-			printf( "\x1b[40m\x1b[31m%s\x1b[0m\n", msg.toUtf8().data() );
-	}
-}
-
 void CMegaBot::triggerKillSwitch()
 {
 	QLocalSocket ks;
@@ -113,30 +92,6 @@ void CMegaBot::dataOnKillSwitchConnection()
 	quit();
 }
 
-void CMegaBot::qxmppLogEvent( const QXmppLogger::MessageType &type, const QString &msg )
-{
-	QString st = "";
-	switch ( type ) {
-		case QXmppLogger::DebugMessage: {
-			st = "DBG";
-			break;
-		}
-		case QXmppLogger::InformationMessage: {
-			st = "INF";
-			break;
-		}
-		case QXmppLogger::WarningMessage: {
-			st = "WRN";
-			break;
-		}
-		default: {
-			break;
-		}
-	}
-
-	LOG( fmt( "[QXmpp - %1] %2").arg( st ).arg( msg ) );
-}
-
 void CMegaBot::newKillSwitchConnection()
 {
 	QLocalSocket *conn = NULL;
@@ -144,12 +99,47 @@ void CMegaBot::newKillSwitchConnection()
 	while ( ( conn = m_killSwitch->nextPendingConnection() ) != NULL ) {
 		conn->setParent( this );
 		connect( conn, SIGNAL( readyRead() ), this, SLOT( dataOnKillSwitchConnection() ) );
-		LOG( "New kill-switch connection" );
 	}
 }
 
-bool CMegaBot::initMaster( bool dofork )
+bool CMegaBot::loadConfig()
 {
+	QFileInfo fi[] = { QString( "/etc/MegaBot/config.json" ), m_basePath + "/etc/config.json" };
+	bool ok = false;
+
+	for ( unsigned i = 0; i < sizeof( fi ) / sizeof( fi[0] ); i++ ) {
+		QFile config( fi[i].absoluteFilePath() );
+
+		if ( !config.open( QIODevice::ReadOnly ) ) {
+			LOG( fmt( "Failed to open '%1': %2" ).arg( fi[i].absoluteFilePath() ).arg( config.errorString() ) );
+			continue;
+		}
+		m_config = Json::parse( config.readAll(), ok ).toMap();
+		if ( !ok ) {
+			LOG( fmt( "Failed to parse file '%1'" ).arg( fi[i].absoluteFilePath() ) );
+			continue;
+		}
+
+		m_configPath = fi[i].absoluteFilePath();
+		return true;
+	}
+
+	return false;
+}
+
+bool CMegaBot::initMaster(bool dofork, const QString &basePath )
+{
+	m_mode = Master;
+
+	if ( !basePath.isEmpty() ) m_basePath = basePath;
+	else m_basePath = "/opt/MegaBot";
+
+	m_scriptPath = fmt( "%1/share/scripts" ).arg( m_basePath );
+	m_logPath = fmt( "%1/var/log" ).arg( m_basePath );
+
+	if ( !loadConfig() )
+		return false;
+
 	m_killSwitch = new QLocalServer( this );
 	if ( !m_killSwitch->listen( MB_KILL_SWITCH ) ) {
 		LOG( fmt( "Failed to create MegaBot kill switch: %1" ).arg( m_killSwitch->errorString() ) );
@@ -166,34 +156,11 @@ bool CMegaBot::initMaster( bool dofork )
 		m_forked = true;
 	}
 
-	QFile config( "config.json" );
-	bool ok = false;
-
-	if ( !config.open( QIODevice::ReadOnly ) ) {
-		LOG( fmt( "Failed to open config file: %1" ).arg( config.errorString() ) );
-		return false;
-	}
-	QVariantMap result = Json::parse( config.readAll(), ok ).toMap();
-	if ( !ok ) {
-		LOG( fmt( "Failed to parse config file" ) );
-		return false;
-	}
-
-	m_mode = Master;
-
-	m_basePath = result["basePath"].toString();
-	if ( m_basePath.isEmpty() ) {
-		LOG( "Missing 'basePath' configuration" );
-		return false;
-	}
-
-	m_logName = fmt( "%1/var/log/mblog.log" ).arg( m_basePath );
-
-	foreach( const QVariant &vSrvName, result["servers"].toMap().keys() ) {
+	foreach( const QVariant &vSrvName, m_config["servers"].toMap().keys() ) {
 		QString server_handle = vSrvName.toString();
 		if ( server_handle.isEmpty() ) continue;
 
-		QVariantMap mSrv = result["servers"].toMap().value( server_handle ).toMap();
+		QVariantMap mSrv = m_config["servers"].toMap().value( server_handle ).toMap();
 
 		CXMPPServer *server = new CXMPPServer( server_handle, this );
 		server->setHost( mSrv["host"].toString() );
@@ -235,7 +202,7 @@ bool CMegaBot::initMaster( bool dofork )
 		}
 
 		m_servers.append( server );
-		connect( this, SIGNAL( configLoaded() ), server, SLOT( connectToServer() ) );
+		connect( this, SIGNAL( botInitialized() ), server, SLOT( connectToServer() ) );
 	}
 
 	if ( !m_servers.size() ) {
@@ -243,26 +210,53 @@ bool CMegaBot::initMaster( bool dofork )
 		return false;
 	}
 
-	emit configLoaded();
+	emit botInitialized();
 
 	return true;
 }
 
-bool CMegaBot::initScriptRunner( const QString &basePath, const QString &server, const QString &room, const QString &nickname, const QString &script, int fd )
+bool CMegaBot::initScriptRunner()
 {
+	QMap<QString, QString> varMap;
+	QString error;
+	QString script;
+	QString server;
+	QString handle;
+	QString room;
+	QString nickname;
+
 	m_mode = ScriptRunner;
-
-	m_basePath = basePath;
-
-	QString fileName = fmt( "%1/share/scripts/%2" ).arg( m_basePath ).arg( script );
-	LOG( fmt( "Running script '%1'" ).arg( fileName ) );
-	m_logName = fmt( "%1/var/log/%2_%3_%4 - %5.log" ).arg( m_basePath ).arg( server ).arg( room ).arg( nickname ).arg( script );
-	LOG( fmt( "Script log file: '%1'" ).arg( m_logName ) );
-
 	m_forked = true;
-	if ( ( m_runner = createRunner( fileName, fd ) ) == NULL )
-		return false;
 
+	varMap["MEGABOT_CONTROL_SOCKET"] = "";
+	varMap["MEGABOT_SERVER"]         = "";
+	varMap["MEGABOT_HANDLE"]         = "";
+	varMap["MEGABOT_ROOM"]           = "";
+	varMap["MEGABOT_NICKNAME"]       = "";
+	varMap["MEGABOT_BASEPATH"]       = "";
+	varMap["MEGABOT_SCRIPT"]         = "";
+
+	foreach ( const QString &var, varMap.keys() ) {
+		varMap[var] = CMegaBot::getEnv( var );
+		if ( varMap[var].isEmpty() ) error += " " + var;
+	}
+	if ( !error.isEmpty() ) return false;
+
+	bool ok = true;
+	int fd = varMap["MEGABOT_CONTROL_SOCKET"].toInt( &ok );
+	if ( !ok || ( ok && fd < 0 ) ) return false;
+
+	m_basePath   = varMap["MEGABOT_BASEPATH"];
+	m_scriptPath = fmt( "%1/share/scripts" ).arg( m_basePath );
+	m_logPath    = fmt( "%1/var/log" ).arg( m_basePath );
+
+	script       = varMap["MEGABOT_SCRIPT"];
+	server       = varMap["MEGABOT_SERVER"];
+	handle       = varMap["MEGABOT_HANDLE"];
+	room         = varMap["MEGABOT_ROOM"];
+	nickname     = varMap["MEGABOT_NICKNAME"];
+
+	if ( ( m_runner = createRunner( handle, script, fd ) ) == NULL ) return false;
 	m_runner->setInitialConfig( server, room, nickname );
 
 	return true;

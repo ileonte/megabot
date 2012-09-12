@@ -67,19 +67,21 @@ bool CScriptController::runScript()
 	} else {
 		/* child */
 		close( m_sockfds[0] );
-		myApp->closeAllSockets( m_sockfds[1] );
+		botInstance->closeAllSockets( m_sockfds[1] );
 
 		setenv( "MEGABOT_CONTROL_SOCKET", fmt( "%1" ).arg( m_sockfds[1] ).toUtf8().data(),    1 );
 		setenv( "MEGABOT_SERVER",         m_room->server()->conferenceHost().toUtf8().data(), 1 );
+		setenv( "MEGABOT_HANDLE",         logHandle().toUtf8().data(),                        1 );
 		setenv( "MEGABOT_ROOM",           m_room->roomName().toUtf8().data(),                 1 );
 		setenv( "MEGABOT_NICKNAME",       m_room->nickName().toUtf8().data(),                 1 );
-		setenv( "MEGABOT_BASEPATH",       myApp->basePath().toUtf8().data(),                  1 );
-		QString pname = QString( "%1[%2]" ).arg( MB_SCRIPT_RUNNER_NAME ).arg( m_room->bareJid() );
-		char * args[] = { strdup( ( char * )pname.toUtf8().data() ), m_script.toUtf8().data(), NULL };
-		execvp( myApp->applicationFilePath().toUtf8().data(), args );
+		setenv( "MEGABOT_BASEPATH",       botInstance->basePath().toUtf8().data(),            1 );
+		setenv( "MEGABOT_SCRIPT",         m_script.toUtf8().data(),                           1 );
+		QString pname = QString( "%1 %2" ).arg( MB_SCRIPT_RUNNER_NAME ).arg( logHandle() );
+		char * args[] = { strdup( ( char * )pname.toUtf8().data() ), NULL };
+		execvp( botInstance->applicationFilePath().toUtf8().data(), args );
 
 		LOG( fmt( "Failed to execute script process: %1" ).arg( strerror( errno ) ) );
-		myApp->exit( 1 );
+		botInstance->exit( 1 );
 		return false;
 	}
 

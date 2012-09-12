@@ -67,6 +67,8 @@ signals:
 public slots:
 	void sendRoomMessage( const QXmppMessage &msg );
 	void sendRoomPresence( const QXmppPresence &presence );
+
+	QString logHandle() { return fmt( "%1/%2" ).arg( m_room->logHandle() ).arg( m_script ); }
 };
 
 #endif // __CSCRIPTCONTROLLER_H_INCLUDED__
