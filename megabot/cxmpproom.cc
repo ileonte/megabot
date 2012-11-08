@@ -138,7 +138,7 @@ void CXMPPRoom::scriptMessage( const CScriptMessagePacket &pkt )
 
 			msg.setXhtml( QString( "<html xmlns='http://jabber.org/protocol/xhtml-im'>"
 					       "<body xmlns='http://www.w3.org/1999/xhtml'>"
-					       "<span style='font-family: Courier New;'>%1</span></body></html>" ).arg( str ) );
+					       "<span style='font-family: DejaVu Sans Mono, Courier New;'>%1</span></body></html>" ).arg( str ) );
 		}
 
 		m_server->m_client->sendPacket( msg );
