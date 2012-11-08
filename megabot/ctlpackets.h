@@ -110,14 +110,16 @@ private:
 	QString m_to;
 	QString m_body;
 	QString m_subject;
+	quint64 m_fixedFont;
 
 public:
 	CScriptMessagePacket( QObject *parent = 0 );
-	CScriptMessagePacket( const QString &to, const QString &body, const QString &subject = "", QObject *parent = 0 );
+	CScriptMessagePacket( const QString &to, const QString &body, const QString &subject = "", bool fixedFont = false, QObject *parent = 0 );
 
 	QString to() const { return m_to; }
 	QString body() const { return m_body; }
 	QString subject() const { return m_subject; }
+	bool fixedFont() const { return m_fixedFont ? true : false; }
 
 	void pack( QByteArray &where ) const;
 	bool unpack( QByteArray &from );

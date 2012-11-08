@@ -66,7 +66,7 @@ public:
 
 	virtual bool setupScript() { return true; }
 
-	void sendMessage( const QString &to, const QString &body, const QString &subject = "" );
+	void sendMessage( const QString &to, const QString &body, const QString &subject = "", bool fixedFont = false );
 
 	QString roomJid() const { return m_roomJid; }
 	QString roomName() const { return m_roomName; }

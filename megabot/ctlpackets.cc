@@ -230,13 +230,14 @@ CScriptMessagePacket::CScriptMessagePacket( QObject *parent ) : CBaseControlPack
 	m_type = ScriptMessage;
 }
 
-CScriptMessagePacket::CScriptMessagePacket( const QString &to, const QString &body, const QString &subject, QObject *parent )
+CScriptMessagePacket::CScriptMessagePacket( const QString &to, const QString &body, const QString &subject, bool fixedFont, QObject *parent )
 	: CBaseControlPacket( parent )
 {
-	m_type    = ScriptMessage;
-	m_to      = to;
-	m_body    = body;
-	m_subject = subject;
+	m_type      = ScriptMessage;
+	m_to        = to;
+	m_body      = body;
+	m_subject   = subject;
+	m_fixedFont = fixedFont;
 }
 
 void CScriptMessagePacket::pack( QByteArray &where ) const
@@ -246,6 +247,7 @@ void CScriptMessagePacket::pack( QByteArray &where ) const
 	pack_string( data, m_to );
 	pack_string( data, m_body );
 	pack_string( data, m_subject );
+	pack_int( data, m_fixedFont );
 
 	constructPacket( where, data );
 }
@@ -259,6 +261,7 @@ bool CScriptMessagePacket::unpack( QByteArray &from )
 	if ( !unpack_string( data, p, m_to ) ) return false;
 	if ( !unpack_string( data, p, m_body ) ) return false;
 	if ( !unpack_string( data, p, m_subject ) ) return false;
+	if ( !unpack_int( data, p, m_fixedFont ) ) return false;
 
 	return true;
 }

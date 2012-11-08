@@ -190,8 +190,13 @@ static int LUACB_sendRoomMessage( lua_State *L )
 
 	size_t len = 0;
 	const char *msg = lua_tolstring( L, 1, &len );
+	bool ff = false;
+
+	if ( lua_gettop( L ) > 1 )
+		ff = ( bool )lua_toboolean( L, 2 );
+
 	if ( msg )
-		lr->sendMessage( lr->roomJid(), QString::fromUtf8( msg ) );
+		lr->sendMessage( lr->roomJid(), QString::fromUtf8( msg ), "", ff );
 
 	return 0;
 }

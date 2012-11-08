@@ -132,9 +132,9 @@ void CScriptRunnerBase::onTimerTimeout( const QString & )
 {
 }
 
-void CScriptRunnerBase::sendMessage( const QString &to, const QString &body, const QString &subject )
+void CScriptRunnerBase::sendMessage( const QString &to, const QString &body, const QString &subject , bool fixedFont )
 {
-	CScriptMessagePacket pkt( to, body, subject );
+	CScriptMessagePacket pkt( to, body, subject, fixedFont );
 	QByteArray data;
 	pkt.pack( data );
 	m_comm->write( data );

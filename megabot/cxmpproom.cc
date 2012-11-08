@@ -121,7 +121,27 @@ bool CXMPPRoom::runScript( const QString &name )
 void CXMPPRoom::scriptMessage( const CScriptMessagePacket &pkt )
 {
 	if ( pkt.to() == bareJid() ) {
-		m_mucroom->sendMessage( pkt.body() );
+		QXmppMessage msg;
+
+		msg.setTo( pkt.to() );
+		msg.setType( QXmppMessage::GroupChat );
+		msg.setBody( pkt.body() );
+		if ( pkt.fixedFont() ) {
+			QString str = pkt.body();
+
+			str.replace( '&', "&amp;" );
+			str.replace( '<', "&lt;" );
+			str.replace( '>', "&gt;" );
+			str.replace( '\'', "&apos;" );
+			str.replace( '"', "&quot;" );
+			str.replace( '\n', "<br/>" );
+
+			msg.setXhtml( QString( "<html xmlns='http://jabber.org/protocol/xhtml-im'>"
+					       "<body xmlns='http://www.w3.org/1999/xhtml'>"
+					       "<span style='font-family: Courier New;'>%1</span></body></html>" ).arg( str ) );
+		}
+
+		m_server->m_client->sendPacket( msg );
 	} else {
 		m_server->m_client->sendMessage( pkt.to(), pkt.body() );
 	}
