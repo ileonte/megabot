@@ -3,6 +3,7 @@
 #include "cmegabot.h"
 #include "cscriptrunner.h"
 #include "cscriptcontroller.h"
+#include "cjsonparser.h"
 
 using namespace QtJson;
 
@@ -59,21 +60,21 @@ void CMegaBot::newKillSwitchConnection()
 bool CMegaBot::loadConfig()
 {
 	QFileInfo fi[] = { QString( "/etc/MegaBot/config.json" ), m_basePath + "/etc/config.json" };
-	bool ok = false;
 	QStringList errors;
 
 	for ( unsigned i = 0; i < sizeof( fi ) / sizeof( fi[0] ); i++ ) {
-		QFile config( fi[i].absoluteFilePath() );
+		CJSONParser p;
 
-		if ( !config.open( QIODevice::ReadOnly ) ) {
-			errors.append( fmt( "Failed to open '%1': %2" ).arg( fi[i].absoluteFilePath() ).arg( config.errorString() ) );
+		if ( !p.parse( fi[i].absoluteFilePath() ) ) {
+			if ( p.error().line > 0 ) {
+				errors.append( fmt( "Failed to parse '%1': at line %2:%3 - %4" ).arg( fi[i].absoluteFilePath() )
+						    .arg( p.error().line ).arg( p.error().column ).arg( p.error().message ) );
+			} else {
+				errors.append( fmt( "Failed to parse '%1': %2" ).arg( fi[i].absoluteFilePath() ).arg( p.error().message ) );
+			}
 			continue;
 		}
-		m_config = Json::parse( config.readAll(), ok ).toMap();
-		if ( !ok ) {
-			errors.append( fmt( "Failed to parse file '%1'" ).arg( fi[i].absoluteFilePath() ) );
-			continue;
-		}
+		m_config = p.value().toMap();
 
 		m_configPath = fi[i].absoluteFilePath();
 		return true;

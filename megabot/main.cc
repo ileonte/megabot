@@ -3,6 +3,10 @@
 #include "cxmpproom.h"
 #include "cscriptrunner.h"
 
+#include "cjsonparser.h"
+
+#include <stdlib.h>
+#include <stdio.h>
 #include <getopt.h>
 
 static void SIGINT_handler( int )
