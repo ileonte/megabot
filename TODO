@@ -1,7 +1,0 @@
-(x) add a way to locally stop a daemonized bot (possibly using a pid file)
-(x) make sure only one bot master process runs at any given time
-( ) add script persistent storage support
-( ) switch config file to Lua table format
-(x) add timer support in script runner
-( ) add QtScript (JavaScript) script runner
-(x) pass room config as arguments/env entries when starting scripts
