@@ -9,8 +9,8 @@ TARGET = $$MB_BUILD_DIR/bin/megabot.bin
 TEMPLATE = app
 
 INCLUDEPATH += ../libs/qxmpp/src/base ../libs/qxmpp/src/client ../libs/lua ../libs/qt-json
-LIBS += ../libs/qxmpp/src/libqxmpp.a ../libs/qt-json/libqtjson.a -L$$MB_BASE_DIR/libs/lua -lm -llua -ldl -lpthread
-QMAKE_LFLAGS += -Wl,-rpath,$$MB_BASE_DIR/libs/lua
+LIBS += ../libs/qxmpp/src/libqxmpp.a ../libs/qt-json/libqtjson.a -L$$MB_BASE_DIR/build/lib -lm -llua -ldl -lpthread
+QMAKE_LFLAGS += -Wl,-rpath,$$MB_BASE_DIR/build/lib
 
 SOURCES += main.cc \
     cxmpproom.cc \
