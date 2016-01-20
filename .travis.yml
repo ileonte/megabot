@@ -1,7 +1,7 @@
 language: cpp
+sudo: false
 env:
   - QT_SELECT=qt4
-  - QT_SELECT=qt5
 install:
   - CI/install-build-depends
 script:
