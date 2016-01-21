@@ -1,5 +1,5 @@
 language: cpp
-sudo: false
+sudo: required
 env:
   - QT_SELECT=qt4
 install:
