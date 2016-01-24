@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -24,8 +24,28 @@
 #include <QDomElement>
 
 #include "QXmppConstants.h"
-#include "QXmppStreamInitiationIq.h"
+#include "QXmppStreamInitiationIq_p.h"
 #include "QXmppUtils.h"
+
+QXmppDataForm QXmppStreamInitiationIq::featureForm() const
+{
+    return m_featureForm;
+}
+
+void QXmppStreamInitiationIq::setFeatureForm(const QXmppDataForm &form)
+{
+    m_featureForm = form;
+}
+
+QXmppTransferFileInfo QXmppStreamInitiationIq::fileInfo() const
+{
+    return m_fileInfo;
+}
+
+void QXmppStreamInitiationIq::setFileInfo(const QXmppTransferFileInfo &fileInfo)
+{
+    m_fileInfo = fileInfo;
+}
 
 QString QXmppStreamInitiationIq::mimeType() const
 {
@@ -47,11 +67,6 @@ void QXmppStreamInitiationIq::setProfile(QXmppStreamInitiationIq::Profile profil
     m_profile = profile;
 }
 
-QXmppElementList QXmppStreamInitiationIq::siItems() const
-{
-    return m_siItems;
-}
-
 QString QXmppStreamInitiationIq::siId() const
 {
     return m_siId;
@@ -60,11 +75,6 @@ QString QXmppStreamInitiationIq::siId() const
 void QXmppStreamInitiationIq::setSiId(const QString &id)
 {
     m_siId = id;
-}
-
-void QXmppStreamInitiationIq::setSiItems(const QXmppElementList &items)
-{
-    m_siItems = items;
 }
 
 /// \cond
@@ -87,7 +97,11 @@ void QXmppStreamInitiationIq::parseElementFromChild(const QDomElement &element)
     QDomElement itemElement = siElement.firstChildElement();
     while (!itemElement.isNull())
     {
-        m_siItems.append(QXmppElement(itemElement));
+        if (itemElement.tagName() == "feature" && itemElement.namespaceURI() == ns_feature_negotiation) {
+            m_featureForm.parse(itemElement.firstChildElement());
+        } else if (itemElement.tagName() == "file" && itemElement.namespaceURI() == ns_stream_initiation_file_transfer) {
+            m_fileInfo.parse(itemElement);
+        }
         itemElement = itemElement.nextSiblingElement();
     }
 }
@@ -100,8 +114,14 @@ void QXmppStreamInitiationIq::toXmlElementFromChild(QXmlStreamWriter *writer) co
     helperToXmlAddAttribute(writer, "mime-type", m_mimeType);
     if (m_profile == FileTransfer)
         helperToXmlAddAttribute(writer, "profile", ns_stream_initiation_file_transfer);
-    foreach (const QXmppElement &item, m_siItems)
-        item.toXml(writer);
+    if (!m_fileInfo.isNull())
+        m_fileInfo.toXml(writer);
+    if (!m_featureForm.isNull()) {
+        writer->writeStartElement("feature");
+        writer->writeAttribute("xmlns", ns_feature_negotiation);
+        m_featureForm.toXml(writer);
+        writer->writeEndElement();
+    }
     writer->writeEndElement();
 }
 /// \endcond

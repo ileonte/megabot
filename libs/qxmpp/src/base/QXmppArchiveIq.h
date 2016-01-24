@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -28,9 +28,6 @@
 #include "QXmppResultSet.h"
 
 #include <QDateTime>
-
-class QXmlStreamWriter;
-class QDomElement;
 
 /// \brief The QXmppArchiveMessage class represents an archived message
 /// as defined by XEP-0136: Message Archiving.

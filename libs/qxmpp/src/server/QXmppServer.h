@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -59,6 +59,7 @@ class QXmppStream;
 class QXMPP_EXPORT QXmppServer : public QXmppLoggable
 {
     Q_OBJECT
+    Q_PROPERTY(QXmppLogger* logger READ logger WRITE setLogger NOTIFY loggerChanged)
 
 public:
     QXmppServer(QObject *parent = 0);
@@ -80,7 +81,9 @@ public:
 
     void addCaCertificates(const QString &caCertificates);
     void setLocalCertificate(const QString &path);
+    void setLocalCertificate(const QSslCertificate &certificate);
     void setPrivateKey(const QString &path);
+    void setPrivateKey(const QSslKey &key);
 
     void close();
     bool listenForClients(const QHostAddress &address = QHostAddress::Any, quint16 port = 5222);
@@ -97,6 +100,9 @@ signals:
 
     /// This signal is emitted when a client has disconnected.
     void clientDisconnected(const QString &jid);
+
+    /// This signal is emitted when the logger changes.
+    void loggerChanged(QXmppLogger *logger);
 
 public slots:
     void handleElement(const QDomElement &element);
@@ -137,7 +143,11 @@ signals:
     void newConnection(QSslSocket *socket);
 
 private:
+    #if QT_VERSION < 0x050000
     void incomingConnection(int socketDescriptor);
+    #else
+    void incomingConnection(qintptr socketDescriptor);
+    #endif
     QXmppSslServerPrivate * const d;
 };
 

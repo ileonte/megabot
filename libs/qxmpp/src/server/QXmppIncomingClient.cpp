@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -190,14 +190,14 @@ void QXmppIncomingClient::handleStream(const QDomElement &streamElement)
     }
 
     // start stream
-    const QByteArray sessionId = QXmppUtils::generateStanzaHash().toAscii();
+    const QByteArray sessionId = QXmppUtils::generateStanzaHash().toLatin1();
     QString response = QString("<?xml version='1.0'?><stream:stream"
         " xmlns=\"%1\" xmlns:stream=\"%2\""
         " id=\"%3\" from=\"%4\" version=\"1.0\" xml:lang=\"en\">").arg(
         ns_client,
         ns_stream,
         sessionId,
-        d->domain.toAscii());
+        d->domain.toLatin1());
     sendData(response.toUtf8());
 
     // check requested domain
@@ -306,6 +306,7 @@ void QXmppIncomingClient::handleStanza(const QDomElement &nodeRecv)
                 // authentication succeeded
                 d->jid = QString("%1@%2").arg(d->saslServer->username(), d->domain);
                 info(QString("Authentication succeeded for '%1' from %2").arg(d->jid, d->origin()));
+                updateCounter("incoming-client.auth.success");
                 sendPacket(QXmppSaslSuccess());
                 handleStart();
             } else {
@@ -398,7 +399,8 @@ void QXmppIncomingClient::onDigestReply()
     reply->deleteLater();
 
     if (reply->error() == QXmppPasswordReply::TemporaryError) {
-        warning(QString("Temporary authentication failure for '%1'").arg(d->saslServer->username()));
+        warning(QString("Temporary authentication failure for '%1' from %2").arg(d->saslServer->username(), d->origin()));
+        updateCounter("incoming-client.auth.temporary-auth-failure");
         sendPacket(QXmppSaslFailure("temporary-auth-failure"));
         disconnectFromHost();
         return;
@@ -409,6 +411,8 @@ void QXmppIncomingClient::onDigestReply()
 
     QXmppSaslServer::Response result = d->saslServer->respond(reply->property("__sasl_raw").toByteArray(), challenge);
     if (result != QXmppSaslServer::Challenge) {
+        warning(QString("Authentication failed for '%1' from %2").arg(d->saslServer->username(), d->origin()));
+        updateCounter("incoming-client.auth.not-authorized");
         sendPacket(QXmppSaslFailure("not-authorized"));
         disconnectFromHost();
         return;
@@ -430,16 +434,19 @@ void QXmppIncomingClient::onPasswordReply()
     case QXmppPasswordReply::NoError:
         d->jid = jid;
         info(QString("Authentication succeeded for '%1' from %2").arg(d->jid, d->origin()));
+        updateCounter("incoming-client.auth.success");
         sendPacket(QXmppSaslSuccess());
         handleStart();
         break;
     case QXmppPasswordReply::AuthorizationError:
         warning(QString("Authentication failed for '%1' from %2").arg(jid, d->origin()));
+        updateCounter("incoming-client.auth.not-authorized");
         sendPacket(QXmppSaslFailure("not-authorized"));
         disconnectFromHost();
         break;
     case QXmppPasswordReply::TemporaryError:
         warning(QString("Temporary authentication failure for '%1' from %2").arg(jid, d->origin()));
+        updateCounter("incoming-client.auth.temporary-auth-failure");
         sendPacket(QXmppSaslFailure("temporary-auth-failure"));
         disconnectFromHost();
         break;

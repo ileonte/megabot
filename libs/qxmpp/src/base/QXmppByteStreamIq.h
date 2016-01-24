@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -28,16 +28,13 @@
 
 #include <QHostAddress>
 
-class QDomElement;
-class QXmlStreamWriter;
-
 class QXMPP_EXPORT QXmppByteStreamIq : public QXmppIq
 {
 public:
     enum Mode {
         None = 0,
         Tcp,
-        Udp,
+        Udp
     };
 
     class QXMPP_EXPORT StreamHost
@@ -46,8 +43,8 @@ public:
         QString jid() const;
         void setJid(const QString &jid);
 
-        QHostAddress host() const;
-        void setHost(const QHostAddress &host);
+        QString host() const;
+        void setHost(const QString &host);
 
         quint16 port() const;
         void setPort(quint16 port);
@@ -56,7 +53,7 @@ public:
         void setZeroconf(const QString &zeroconf);
 
     private:
-        QHostAddress m_host;
+        QString m_host;
         QString m_jid;
         quint16 m_port;
         QString m_zeroconf;

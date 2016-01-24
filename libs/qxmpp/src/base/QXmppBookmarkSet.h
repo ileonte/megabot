@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -25,13 +25,9 @@
 #define QXMPPBOOKMARKSET_H
 
 #include <QList>
-#include <QString>
 #include <QUrl>
-#include <QXmlStreamWriter>
 
-#include "QXmppGlobal.h"
-
-class QDomElement;
+#include "QXmppStanza.h"
 
 /// \brief The QXmppBookmarkConference class represents a bookmark for a conference room,
 /// as defined by XEP-0048: Bookmarks.

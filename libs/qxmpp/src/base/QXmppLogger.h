@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -58,7 +58,7 @@ public:
         NoLogging = 0,      ///< Log messages are discarded
         FileLogging = 1,    ///< Log messages are written to a file
         StdoutLogging = 2,  ///< Log messages are written to the standard output
-        SignalLogging = 4,  ///< Log messages are emitted as a signal
+        SignalLogging = 4   ///< Log messages are emitted as a signal
     };
 
     /// This enum describes a type of log message.
@@ -70,7 +70,7 @@ public:
         WarningMessage = 4,     ///< Warning message
         ReceivedMessage = 8,    ///< Message received from server
         SentMessage = 16,       ///< Message sent to server
-        AnyMessage = 31,        ///< Any message type
+        AnyMessage = 31         ///< Any message type
     };
     Q_DECLARE_FLAGS(MessageTypes, MessageType)
 
@@ -89,6 +89,9 @@ public:
     void setMessageTypes(QXmppLogger::MessageTypes types);
 
 public slots:
+    virtual void setGauge(const QString &gauge, double value);
+    virtual void updateCounter(const QString &counter, qint64 amount);
+
     void log(QXmppLogger::MessageType type, const QString& text);
     void reopen();
 
@@ -163,8 +166,14 @@ protected:
     }
 
 signals:
+    /// Sets the given \a gauge to \a value.
+    void setGauge(const QString &gauge, double value);
+
     /// This signal is emitted to send logging messages.
     void logMessage(QXmppLogger::MessageType type, const QString &msg);
+
+    /// Updates the given \a counter by \a amount.
+    void updateCounter(const QString &counter, qint64 amount = 1);
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(QXmppLogger::MessageTypes)

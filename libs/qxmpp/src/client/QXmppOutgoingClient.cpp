@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -103,8 +103,11 @@ private:
 QXmppOutgoingClientPrivate::QXmppOutgoingClientPrivate(QXmppOutgoingClient *qq)
     : redirectPort(0)
     , sessionAvailable(false)
+    , sessionStarted(false)
     , isAuthenticated(false)
     , saslClient(0)
+    , pingTimer(0)
+    , timeoutTimer(0)
     , q(qq)
 {
 }
@@ -126,7 +129,16 @@ void QXmppOutgoingClientPrivate::connectToHost(const QString &host, quint16 port
 #endif
 
     // connect to host
-    q->socket()->connectToHost(host, port);
+    const QXmppConfiguration::StreamSecurityMode localSecurity = q->configuration().streamSecurityMode();
+    if (localSecurity == QXmppConfiguration::LegacySSL) {
+        if (!q->socket()->supportsSsl()) {
+            q->warning("Not connecting as legacy SSL was requested, but SSL support is not available");
+            return;
+        }
+        q->socket()->connectToHostEncrypted(host, port);
+    } else {
+        q->socket()->connectToHost(host, port);
+    }
 }
 
 /// Constructs an outgoing client stream.
@@ -257,12 +269,17 @@ void QXmppOutgoingClient::_q_socketDisconnected()
     }
 }
 
-void QXmppOutgoingClient::socketSslErrors(const QList<QSslError> & error)
+void QXmppOutgoingClient::socketSslErrors(const QList<QSslError> &errors)
 {
+    // log errors
     warning("SSL errors");
-    for(int i = 0; i< error.count(); ++i)
-        warning(error.at(i).errorString());
+    for(int i = 0; i< errors.count(); ++i)
+        warning(errors.at(i).errorString());
 
+    // relay signal
+    emit sslErrors(errors);
+
+    // if configured, ignore the errors
     if (configuration().ignoreSslErrors())
         socket()->ignoreSslErrors();
 }
@@ -377,6 +394,12 @@ void QXmppOutgoingClient::handleStanza(const QDomElement &nodeRecv)
             // supported and preferred SASL auth mechanisms
             QStringList supportedMechanisms = QXmppSaslClient::availableMechanisms();
             const QString preferredMechanism = configuration().saslAuthMechanism();
+            if (configuration().facebookAppId().isEmpty() || configuration().facebookAccessToken().isEmpty())
+                supportedMechanisms.removeAll("X-FACEBOOK-PLATFORM");
+            if (configuration().windowsLiveAccessToken().isEmpty())
+                supportedMechanisms.removeAll("X-MESSENGER-OAUTH2");
+            if (configuration().googleAccessToken().isEmpty())
+                supportedMechanisms.removeAll("X-OAUTH2");
 
             // determine SASL Authentication mechanism to use
             QStringList commonMechanisms;
@@ -520,7 +543,10 @@ void QXmppOutgoingClient::handleStanza(const QDomElement &nodeRecv)
             QXmppSaslFailure failure;
             failure.parse(nodeRecv);
 
-            if (failure.condition() == "not-authorized")
+            // RFC3920 defines the error condition as "not-authorized", but
+            // some broken servers use "bad-auth" instead. We tolerate this
+            // by remapping the error to "not-authorized".
+            if (failure.condition() == "not-authorized" || failure.condition() == "bad-auth")
                 d->xmppStreamError = QXmppStanza::Error::NotAuthorized;
             else
                 d->xmppStreamError = QXmppStanza::Error::UndefinedCondition;

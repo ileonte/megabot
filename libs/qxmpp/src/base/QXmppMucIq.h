@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -43,7 +43,7 @@ public:
         NoAffiliation,
         MemberAffiliation,
         AdminAffiliation,
-        OwnerAffiliation,
+        OwnerAffiliation
     };
 
     /// This enum is used to represent short-lived permissions in a room (roles).
@@ -52,7 +52,7 @@ public:
         NoRole,
         VisitorRole,
         ParticipantRole,
-        ModeratorRole,
+        ModeratorRole
     };
 
     QXmppMucItem();

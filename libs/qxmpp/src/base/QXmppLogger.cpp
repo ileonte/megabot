@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -60,6 +60,16 @@ static QString formatted(QXmppLogger::MessageType type, const QString& text)
         text;
 }
 
+static void relaySignals(QXmppLoggable *from, QXmppLoggable *to)
+{
+    QObject::connect(from, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
+                     to, SIGNAL(logMessage(QXmppLogger::MessageType,QString)));
+    QObject::connect(from, SIGNAL(setGauge(QString,double)),
+                     to, SIGNAL(setGauge(QString,double)));
+    QObject::connect(from, SIGNAL(updateCounter(QString,qint64)),
+                     to, SIGNAL(updateCounter(QString,qint64)));
+}
+
 /// Constructs a new QXmppLoggable.
 ///
 /// \param parent
@@ -69,8 +79,7 @@ QXmppLoggable::QXmppLoggable(QObject *parent)
 {
     QXmppLoggable *logParent = qobject_cast<QXmppLoggable*>(parent);
     if (logParent) {
-        connect(this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
-                logParent, SIGNAL(logMessage(QXmppLogger::MessageType,QString)));
+        relaySignals(this, logParent);
     }
 }
 
@@ -82,11 +91,14 @@ void QXmppLoggable::childEvent(QChildEvent *event)
         return;
 
     if (event->added()) {
-        connect(child, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
-                this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)));
+        relaySignals(child, this);
     } else if (event->removed()) {
         disconnect(child, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
                 this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)));
+        disconnect(child, SIGNAL(setGauge(QString,double)),
+                this, SIGNAL(setGauge(QString,double)));
+        disconnect(child, SIGNAL(updateCounter(QString,qint64)),
+                this, SIGNAL(updateCounter(QString,qint64)));
     }
 }
 /// \endcond
@@ -94,23 +106,19 @@ void QXmppLoggable::childEvent(QChildEvent *event)
 class QXmppLoggerPrivate
 {
 public:
-    QXmppLoggerPrivate(QXmppLogger *qq);
+    QXmppLoggerPrivate();
 
     QXmppLogger::LoggingType loggingType;
     QFile *logFile;
     QString logFilePath;
     QXmppLogger::MessageTypes messageTypes;
-
-private:
-    QXmppLogger *q;
 };
 
-QXmppLoggerPrivate::QXmppLoggerPrivate(QXmppLogger *qq)
-    : loggingType(QXmppLogger::NoLogging),
-    logFile(0),
-    logFilePath("QXmppClientLog.log"),
-    messageTypes(QXmppLogger::AnyMessage),
-    q(qq)
+QXmppLoggerPrivate::QXmppLoggerPrivate()
+    : loggingType(QXmppLogger::NoLogging)
+    , logFile(0)
+    , logFilePath("QXmppClientLog.log")
+    , messageTypes(QXmppLogger::AnyMessage)
 {
 }
 
@@ -120,9 +128,8 @@ QXmppLoggerPrivate::QXmppLoggerPrivate(QXmppLogger *qq)
 
 QXmppLogger::QXmppLogger(QObject *parent)
     : QObject(parent)
+    , d(new QXmppLoggerPrivate())
 {
-    d = new QXmppLoggerPrivate(this);
-
     // make it possible to pass QXmppLogger::MessageType between threads
     qRegisterMetaType< QXmppLogger::MessageType >("QXmppLogger::MessageType");
 }
@@ -209,6 +216,26 @@ void QXmppLogger::log(QXmppLogger::MessageType type, const QString& text)
     default:
         break;
     }
+}
+
+/// Sets the given \a gauge to \a value.
+///
+/// NOTE: the base implementation does nothing.
+
+void QXmppLogger::setGauge(const QString &gauge, double value)
+{
+    Q_UNUSED(gauge);
+    Q_UNUSED(value);
+}
+
+/// Updates the given \a counter by \a amount.
+///
+/// NOTE: the base implementation does nothing.
+
+void QXmppLogger::updateCounter(const QString &counter, qint64 amount)
+{
+    Q_UNUSED(counter);
+    Q_UNUSED(amount);
 }
 
 /// Returns the path to which logging messages should be written.

@@ -1,3 +1,3 @@
 TEMPLATE = subdirs
-SUBDIRS = expat lua sqlite3 qxmpp qt-json
+SUBDIRS = expat lua sqlite3 qxmpp
 CONFIG += ordered

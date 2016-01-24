@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -114,3 +114,5 @@ const char* ns_attention = "urn:xmpp:attention:0";
 const char* ns_bob = "urn:xmpp:bob";
 // XEP-0249: Direct MUC Invitations
 const char* ns_conference = "jabber:x:conference";
+// XEP-0333: Chat Markers
+const char* ns_chat_markers = "urn:xmpp:chat-markers:0";

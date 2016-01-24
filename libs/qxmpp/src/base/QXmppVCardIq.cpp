@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -84,6 +84,25 @@ QXmppVCardAddress& QXmppVCardAddress::operator=(const QXmppVCardAddress &other)
 {
     d = other.d;
     return *this;
+}
+
+/// \brief Checks if two address objects represent the same address.
+
+bool operator==(const QXmppVCardAddress &left, const QXmppVCardAddress &right)
+{
+    return left.type() == right.type() &&
+            left.country() == right.country() &&
+            left.locality() == right.locality() &&
+            left.postcode() == right.postcode() &&
+            left.region() == right.region() &&
+            left.street() == right.street();
+}
+
+/// \brief Checks if two address objects represent different addresses.
+
+bool operator!=(const QXmppVCardAddress &left, const QXmppVCardAddress &right)
+{
+    return !(left == right);
 }
 
 /// Returns the country.
@@ -250,6 +269,21 @@ QXmppVCardEmail& QXmppVCardEmail::operator=(const QXmppVCardEmail &other)
     return *this;
 }
 
+/// \brief Checks if two email objects represent the same email address.
+
+bool operator==(const QXmppVCardEmail &left, const QXmppVCardEmail &right)
+{
+    return left.type() == right.type() &&
+            left.address() == right.address();
+}
+
+/// \brief Checks if two email objects represent different email addresses.
+
+bool operator!=(const QXmppVCardEmail &left, const QXmppVCardEmail &right)
+{
+    return !(left == right);
+}
+
 /// Returns the e-mail address.
 
 QString QXmppVCardEmail::address() const
@@ -353,6 +387,21 @@ QString QXmppVCardPhone::number() const
     return d->number;
 }
 
+/// \brief Checks if two phone objects represent the same phone number.
+
+bool operator==(const QXmppVCardPhone &left, const QXmppVCardPhone &right)
+{
+    return left.type() == right.type() &&
+            left.number() == right.number();
+}
+
+/// \brief Checks if two phone objects represent different phone numbers.
+
+bool operator!=(const QXmppVCardPhone &left, const QXmppVCardPhone &right)
+{
+    return !(left == right);
+}
+
 /// Sets the phone \a number.
 
 void QXmppVCardPhone::setNumber(const QString &number)
@@ -408,7 +457,7 @@ void QXmppVCardPhone::parse(const QDomElement &element)
 
 void QXmppVCardPhone::toXml(QXmlStreamWriter *writer) const
 {
-    writer->writeStartElement("PHONE");
+    writer->writeStartElement("TEL");
     if (d->type & Home)
         writer->writeEmptyElement("HOME");
     if (d->type & Work)
@@ -440,6 +489,140 @@ void QXmppVCardPhone::toXml(QXmlStreamWriter *writer) const
 }
 /// \endcond
 
+class QXmppVCardOrganizationPrivate : public QSharedData
+{
+public:
+    QString organization;
+    QString unit;
+    QString role;
+    QString title;
+};
+
+/// Constructs an empty organization information.
+
+QXmppVCardOrganization::QXmppVCardOrganization()
+    : d(new QXmppVCardOrganizationPrivate)
+{
+}
+
+/// Constructs a copy of \a other.
+
+QXmppVCardOrganization::QXmppVCardOrganization(const QXmppVCardOrganization &other)
+    : d(other.d)
+{
+}
+
+QXmppVCardOrganization::~QXmppVCardOrganization()
+{
+}
+
+/// Assigns \a other to this organization info.
+
+QXmppVCardOrganization& QXmppVCardOrganization::operator=(const QXmppVCardOrganization &other)
+{
+    d = other.d;
+    return *this;
+}
+
+/// \brief Checks if two organization objects represent the same organization.
+
+bool operator==(const QXmppVCardOrganization &left, const QXmppVCardOrganization &right)
+{
+    return left.organization() == right.organization() &&
+            left.unit() == right.unit() &&
+            left.title() == right.title() &&
+            left.role() == right.role();
+}
+
+/// \brief Checks if two organization objects represent different organizations.
+
+bool operator!=(const QXmppVCardOrganization &left, const QXmppVCardOrganization &right)
+{
+    return !(left == right);
+}
+
+/// Returns the name of the organization.
+
+QString QXmppVCardOrganization::organization() const
+{
+    return d->organization;
+}
+
+/// Sets the organization \a name.
+
+void QXmppVCardOrganization::setOrganization(const QString &name)
+{
+    d->organization = name;
+}
+
+/// Returns the organization unit (also known as department).
+
+QString QXmppVCardOrganization::unit() const
+{
+    return d->unit;
+}
+
+/// Sets the \a unit within the organization.
+
+void QXmppVCardOrganization::setUnit(const QString &unit)
+{
+    d->unit = unit;
+}
+
+/// Returns the job role within the organization.
+
+QString QXmppVCardOrganization::role() const
+{
+    return d->role;
+}
+
+/// Sets the job \a role within the organization.
+
+void QXmppVCardOrganization::setRole(const QString &role)
+{
+    d->role = role;
+}
+
+/// Returns the job title within the organization.
+
+QString QXmppVCardOrganization::title() const
+{
+    return d->title;
+}
+
+/// Sets the job \a title within the organization.
+
+void QXmppVCardOrganization::setTitle(const QString &title)
+{
+    d->title = title;
+}
+
+/// \cond
+void QXmppVCardOrganization::parse(const QDomElement &cardElem)
+{
+    d->title = cardElem.firstChildElement("TITLE").text();
+    d->role = cardElem.firstChildElement("ROLE").text();
+
+    const QDomElement &orgElem = cardElem.firstChildElement("ORG");
+    d->organization = orgElem.firstChildElement("ORGNAME").text();
+    d->unit = orgElem.firstChildElement("ORGUNIT").text();
+}
+
+void QXmppVCardOrganization::toXml(QXmlStreamWriter *stream) const
+{
+    if (!d->unit.isEmpty() || !d->organization.isEmpty())
+    {
+        stream->writeStartElement("ORG");
+        stream->writeTextElement("ORGNAME", d->organization);
+        stream->writeTextElement("ORGUNIT", d->unit);
+        stream->writeEndElement();
+    }
+
+    helperToXmlAddTextElement(stream, "TITLE", d->title);
+    helperToXmlAddTextElement(stream, "ROLE", d->role);
+}
+/// \endcond
+
 class QXmppVCardIqPrivate : public QSharedData
 {
 public:
@@ -459,6 +642,7 @@ public:
     QList<QXmppVCardAddress> addresses;
     QList<QXmppVCardEmail> emails;
     QList<QXmppVCardPhone> phones;
+    QXmppVCardOrganization organization;
 };
 
 /// Constructs a QXmppVCardIq for the specified recipient.
@@ -492,6 +676,34 @@ QXmppVCardIq& QXmppVCardIq::operator=(const QXmppVCardIq &other)
     QXmppIq::operator=(other);
     d = other.d;
     return *this;
+}
+
+/// \brief Checks if two VCard objects represent the same VCard.
+
+bool operator==(const QXmppVCardIq &left, const QXmppVCardIq &right)
+{
+    return left.birthday() == right.birthday() &&
+            left.description() == right.description() &&
+            left.email() == right.email() &&
+            left.firstName() == right.firstName() &&
+            left.fullName() == right.fullName() &&
+            left.lastName() == right.lastName() &&
+            left.middleName() == right.middleName() &&
+            left.nickName() == right.nickName() &&
+            left.photo() == right.photo() &&
+            left.photoType() == right.photoType() &&
+            left.url() == right.url() &&
+            left.addresses() == right.addresses() &&
+            left.emails() == right.emails() &&
+            left.phones() == right.phones() &&
+            left.organization() == right.organization();
+}
+
+/// \brief Checks if two VCard objects represent different VCards.
+
+bool operator!=(const QXmppVCardIq &left, const QXmppVCardIq &right)
+{
+    return !(left == right);
 }
 
 /// Returns the date of birth of the individual associated with the vCard.
@@ -732,6 +944,21 @@ void QXmppVCardIq::setPhones(const QList<QXmppVCardPhone> &phones)
 {
     d->phones = phones;
 }
+
+/// Returns the organization info.
+
+QXmppVCardOrganization QXmppVCardIq::organization() const
+{
+    return d->organization;
+}
+
+/// Sets the organization info.
+
+void QXmppVCardIq::setOrganization(const QXmppVCardOrganization &org)
+{
+    d->organization = org;
+}
+
 /// \cond
 bool QXmppVCardIq::isVCard(const QDomElement &nodeRecv)
 {
@@ -753,7 +980,7 @@ void QXmppVCardIq::parseElementFromChild(const QDomElement& nodeRecv)
     d->url = cardElement.firstChildElement("URL").text();
     QDomElement photoElement = cardElement.firstChildElement("PHOTO");
     QByteArray base64data = photoElement.
-                            firstChildElement("BINVAL").text().toAscii();
+                            firstChildElement("BINVAL").text().toLatin1();
     d->photo = QByteArray::fromBase64(base64data);
     d->photoType = photoElement.firstChildElement("TYPE").text();
 
@@ -767,13 +994,15 @@ void QXmppVCardIq::parseElementFromChild(const QDomElement& nodeRecv)
             QXmppVCardEmail email;
             email.parse(child);
             d->emails << email;
-        } else if (child.tagName() == "PHONE") {
+        } else if (child.tagName() == "TEL") {
             QXmppVCardPhone phone;
             phone.parse(child);
             d->phones << phone;
         }
         child = child.nextSiblingElement();
     }
+
+    d->organization.parse(cardElement);
 }
 
 void QXmppVCardIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
@@ -820,6 +1049,8 @@ void QXmppVCardIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
     }
     if (!d->url.isEmpty())
         helperToXmlAddTextElement(writer, "URL", d->url);
+
+    d->organization.toXml(writer);
 
     writer->writeEndElement();
 }

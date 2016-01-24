@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -208,6 +208,7 @@ void QXmppPubSubIq::parseElementFromChild(const QDomElement &element)
     {
     case QXmppPubSubIq::ItemsQuery:
     case QXmppPubSubIq::PublishQuery:
+    case QXmppPubSubIq::RetractQuery:
         childElement = queryElement.firstChildElement("item");
         while (!childElement.isNull())
         {
@@ -241,6 +242,7 @@ void QXmppPubSubIq::toXmlElementFromChild(QXmlStreamWriter *writer) const
     {
     case QXmppPubSubIq::ItemsQuery:
     case QXmppPubSubIq::PublishQuery:
+    case QXmppPubSubIq::RetractQuery:
         foreach (const QXmppPubSubItem &item, m_items)
             item.toXml(writer);
         break;

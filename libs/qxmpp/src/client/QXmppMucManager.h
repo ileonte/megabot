@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -119,7 +119,7 @@ public:
         SubjectAction = 1,          ///< change the room's subject
         ConfigurationAction = 2,    ///< change the room's configuration
         PermissionsAction = 4,      ///< change the room's permissions
-        KickAction = 8,             ///< kick users from the room
+        KickAction = 8              ///< kick users from the room
     };
     Q_DECLARE_FLAGS(Actions, Action)
 

@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -46,7 +46,7 @@ public:
 QXmppDiscoveryManager::QXmppDiscoveryManager()
     : d(new QXmppDiscoveryManagerPrivate)
 {
-    d->clientCapabilitiesNode = "http://code.google.com/p/qxmpp";
+    d->clientCapabilitiesNode = "https://github.com/qxmpp-project/qxmpp";
     d->clientCategory = "client";
     d->clientType = "pc";
     if (qApp->applicationName().isEmpty() && qApp->applicationVersion().isEmpty())
@@ -115,7 +115,8 @@ QXmppDiscoveryIq QXmppDiscoveryManager::capabilities()
         << ns_chat_states       // XEP-0085: Chat State Notifications
         << ns_capabilities      // XEP-0115: Entity Capabilities
         << ns_ping              // XEP-0199: XMPP Ping
-        << ns_attention;        // XEP-0224: Attention
+        << ns_attention         // XEP-0224: Attention
+        << ns_chat_markers;     // XEP-0333: Chat Markers
 
     foreach(QXmppClientExtension* extension, client()->extensions())
     {
@@ -193,7 +194,7 @@ void QXmppDiscoveryManager::setClientName(const QString& name)
 
 /// Returns the capabilities node of the local XMPP client.
 ///
-/// By default this is "http://code.google.com/p/qxmpp".
+/// By default this is "https://github.com/qxmpp-project/qxmpp".
 
 QString QXmppDiscoveryManager::clientCapabilitiesNode() const
 {

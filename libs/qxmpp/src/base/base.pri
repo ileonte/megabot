@@ -24,13 +24,14 @@ INSTALL_HEADERS += \
     base/QXmppResultSet.h \
     base/QXmppRosterIq.h \
     base/QXmppRpcIq.h \
+    base/QXmppRtcpPacket.h \
     base/QXmppRtpChannel.h \
+    base/QXmppRtpPacket.h \
     base/QXmppSessionIq.h \
     base/QXmppSocks.h \
     base/QXmppStanza.h \
     base/QXmppStream.h \
     base/QXmppStreamFeatures.h \
-    base/QXmppStreamInitiationIq.h \
     base/QXmppStun.h \
     base/QXmppUtils.h \
     base/QXmppVCardIq.h \
@@ -38,7 +39,9 @@ INSTALL_HEADERS += \
 
 HEADERS += \
     base/QXmppCodec_p.h \
-    base/QXmppSasl_p.h
+    base/QXmppSasl_p.h \
+    base/QXmppStreamInitiationIq_p.h \
+    base/QXmppStun_p.h
 
 # Source files
 SOURCES += \
@@ -67,7 +70,9 @@ SOURCES += \
     base/QXmppResultSet.cpp \
     base/QXmppRosterIq.cpp \
     base/QXmppRpcIq.cpp \
+    base/QXmppRtcpPacket.cpp \
     base/QXmppRtpChannel.cpp \
+    base/QXmppRtpPacket.cpp \
     base/QXmppSasl.cpp \
     base/QXmppSessionIq.cpp \
     base/QXmppSocks.cpp \
@@ -89,4 +94,5 @@ contains(qt_version, 4) {
     else:symbian:SOURCES += base/qdnslookup_symbian.cpp
     else:unix:SOURCES += base/qdnslookup_unix.cpp
     else:win32:SOURCES += base/qdnslookup_win.cpp
+    else:SOURCES += base/qdnslookup_stub.cpp
 }

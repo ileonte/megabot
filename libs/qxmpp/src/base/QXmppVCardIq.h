@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -33,6 +33,7 @@
 class QXmppVCardAddressPrivate;
 class QXmppVCardEmailPrivate;
 class QXmppVCardPhonePrivate;
+class QXmppVCardOrganizationPrivate;
 class QXmppVCardIqPrivate;
 
 /// \brief Represent a vCard address.
@@ -48,7 +49,7 @@ public:
         Postal      = 0x4,
         Preferred   = 0x8
     };
-    Q_DECLARE_FLAGS(Type, TypeFlag);
+    Q_DECLARE_FLAGS(Type, TypeFlag)
 
     QXmppVCardAddress();
     QXmppVCardAddress(const QXmppVCardAddress &other);
@@ -83,6 +84,9 @@ private:
     QSharedDataPointer<QXmppVCardAddressPrivate> d;
 };
 
+QXMPP_EXPORT bool operator==(const QXmppVCardAddress&, const QXmppVCardAddress&);
+QXMPP_EXPORT bool operator!=(const QXmppVCardAddress&, const QXmppVCardAddress&);
+
 /// \brief Represents a vCard e-mail address.
 
 class QXMPP_EXPORT QXmppVCardEmail
@@ -97,7 +101,7 @@ public:
         Preferred   = 0x8,
         X400        = 0x10
     };
-    Q_DECLARE_FLAGS(Type, TypeFlag);
+    Q_DECLARE_FLAGS(Type, TypeFlag)
 
     QXmppVCardEmail();
     QXmppVCardEmail(const QXmppVCardEmail &other);
@@ -119,6 +123,9 @@ public:
 private:
     QSharedDataPointer<QXmppVCardEmailPrivate> d;
 };
+
+QXMPP_EXPORT bool operator==(const QXmppVCardEmail&, const QXmppVCardEmail&);
+QXMPP_EXPORT bool operator!=(const QXmppVCardEmail&, const QXmppVCardEmail&);
 
 /// \brief Represents a vCard phone number.
 
@@ -142,7 +149,7 @@ public:
         PCS         = 0x800,
         Preferred   = 0x1000
     };
-    Q_DECLARE_FLAGS(Type, TypeFlag);
+    Q_DECLARE_FLAGS(Type, TypeFlag)
 
     QXmppVCardPhone();
     QXmppVCardPhone(const QXmppVCardPhone &other);
@@ -165,6 +172,47 @@ private:
     QSharedDataPointer<QXmppVCardPhonePrivate> d;
 };
 
+QXMPP_EXPORT bool operator==(const QXmppVCardPhone&, const QXmppVCardPhone&);
+QXMPP_EXPORT bool operator!=(const QXmppVCardPhone&, const QXmppVCardPhone&);
+
+/// \brief Represents organization information in XMPP vCards.
+///
+/// This contains both information about organization itself and
+/// information about job position in the organization.
+
+class QXMPP_EXPORT QXmppVCardOrganization
+{
+public:
+    QXmppVCardOrganization();
+    QXmppVCardOrganization(const QXmppVCardOrganization &other);
+    ~QXmppVCardOrganization();
+
+    QXmppVCardOrganization& operator=(const QXmppVCardOrganization &other);
+
+    QString organization() const;
+    void setOrganization(const QString&);
+
+    QString unit() const;
+    void setUnit(const QString&);
+
+    QString title() const;
+    void setTitle(const QString&);
+
+    QString role() const;
+    void setRole(const QString&);
+
+    /// \cond
+    void parse(const QDomElement &element);
+    void toXml(QXmlStreamWriter *stream) const;
+    /// \endcond
+
+private:
+    QSharedDataPointer<QXmppVCardOrganizationPrivate> d;
+};
+
+QXMPP_EXPORT bool operator==(const QXmppVCardOrganization&, const QXmppVCardOrganization&);
+QXMPP_EXPORT bool operator!=(const QXmppVCardOrganization&, const QXmppVCardOrganization&);
+
 /// \brief Represents the XMPP vCard.
 ///
 /// The functions names are self explanatory.
@@ -178,7 +226,7 @@ private:
 class QXMPP_EXPORT QXmppVCardIq : public QXmppIq
 {
 public:
-    QXmppVCardIq(const QString& bareJid = "");
+    QXmppVCardIq(const QString& bareJid = QString());
     QXmppVCardIq(const QXmppVCardIq &other);
     ~QXmppVCardIq();
 
@@ -226,6 +274,9 @@ public:
     QList<QXmppVCardPhone> phones() const;
     void setPhones(const QList<QXmppVCardPhone> &phones);
 
+    QXmppVCardOrganization organization() const;
+    void setOrganization(const QXmppVCardOrganization&);
+
     /// \cond
     static bool isVCard(const QDomElement &element);
     /// \endcond
@@ -239,5 +290,8 @@ protected:
 private:
     QSharedDataPointer<QXmppVCardIqPrivate> d;
 };
+
+QXMPP_EXPORT bool operator==(const QXmppVCardIq&, const QXmppVCardIq&);
+QXMPP_EXPORT bool operator!=(const QXmppVCardIq&, const QXmppVCardIq&);
 
 #endif // QXMPPVCARDIQ_H

@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -89,15 +89,20 @@ public:
     QXmppPasswordChecker *passwordChecker;
 
     // client-to-server
-    QXmppSslServer *serverForClients;
     QSet<QXmppIncomingClient*> incomingClients;
     QHash<QString, QXmppIncomingClient*> incomingClientsByJid;
     QHash<QString, QSet<QXmppIncomingClient*> > incomingClientsByBareJid;
+    QSet<QXmppSslServer*> serversForClients;
 
     // server-to-server
     QSet<QXmppIncomingServer*> incomingServers;
     QSet<QXmppOutgoingServer*> outgoingServers;
-    QXmppSslServer *serverForServers;
+    QSet<QXmppSslServer*> serversForServers;
+
+    // ssl
+    QList<QSslCertificate> caCertificates;
+    QSslCertificate localCertificate;
+    QSslKey privateKey;
 
 private:
     bool loaded;
@@ -145,7 +150,7 @@ bool QXmppServerPrivate::routeData(const QString &to, const QByteArray &data)
             QMetaObject::invokeMethod(conn, "sendData", Q_ARG(QByteArray, data));
         return !found.isEmpty();
 
-    } else if (serverForServers->isListening()) {
+    } else if (!serversForServers.isEmpty()) {
 
         bool check;
         Q_UNUSED(check);
@@ -162,7 +167,7 @@ bool QXmppServerPrivate::routeData(const QString &to, const QByteArray &data)
         // if we did not find an outgoing server,
         // we need to establish the S2S connection
         QXmppOutgoingServer *conn = new QXmppOutgoingServer(domain, 0);
-        conn->setLocalStreamKey(QXmppUtils::generateStanzaHash().toAscii());
+        conn->setLocalStreamKey(QXmppUtils::generateStanzaHash().toLatin1());
         conn->moveToThread(q->thread());
         conn->setParent(q);
 
@@ -172,6 +177,7 @@ bool QXmppServerPrivate::routeData(const QString &to, const QByteArray &data)
 
         // add stream
         outgoingServers.insert(conn);
+        q->setGauge("outgoing-server.count", outgoingServers.size());
 
         // queue data and connect to remote server
         QMetaObject::invokeMethod(conn, "queueData", Q_ARG(QByteArray, data));
@@ -301,22 +307,9 @@ void QXmppServerPrivate::stopExtensions()
 
 QXmppServer::QXmppServer(QObject *parent)
     : QXmppLoggable(parent)
+    , d(new QXmppServerPrivate(this))
 {
-    bool check;
-    Q_UNUSED(check);
-
     qRegisterMetaType<QDomElement>("QDomElement");
-
-    d = new QXmppServerPrivate(this);
-    d->serverForClients = new QXmppSslServer(this);
-    check = connect(d->serverForClients, SIGNAL(newConnection(QSslSocket*)),
-                    this, SLOT(_q_clientConnection(QSslSocket*)));
-    Q_ASSERT(check);
-
-    d->serverForServers = new QXmppSslServer(this);
-    check = connect(d->serverForServers, SIGNAL(newConnection(QSslSocket*)),
-                    this, SLOT(_q_serverConnection(QSslSocket*)));
-    Q_ASSERT(check);
 }
 
 /// Destroys an XMPP server instance.
@@ -391,14 +384,28 @@ QXmppLogger *QXmppServer::logger()
 
 void QXmppServer::setLogger(QXmppLogger *logger)
 {
-    if (d->logger)
-        QObject::disconnect(this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
-                   d->logger, SLOT(log(QXmppLogger::MessageType,QString)));
-    d->logger = logger;
-    d->logger = logger;
-    if (d->logger)
-        connect(this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
-                d->logger, SLOT(log(QXmppLogger::MessageType,QString)));
+    if (logger != d->logger) {
+        if (d->logger) {
+            disconnect(this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
+                       d->logger, SLOT(log(QXmppLogger::MessageType,QString)));
+            disconnect(this, SIGNAL(setGauge(QString,double)),
+                       d->logger, SLOT(setGauge(QString,double)));
+            disconnect(this, SIGNAL(updateCounter(QString,qint64)),
+                       d->logger, SLOT(updateCounter(QString,qint64)));
+        }
+
+        d->logger = logger;
+        if (d->logger) {
+            connect(this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
+                    d->logger, SLOT(log(QXmppLogger::MessageType,QString)));
+            connect(this, SIGNAL(setGauge(QString,double)),
+                    d->logger, SLOT(setGauge(QString,double)));
+            connect(this, SIGNAL(updateCounter(QString,qint64)),
+                    d->logger, SLOT(updateCounter(QString,qint64)));
+        }
+
+        emit loggerChanged(d->logger);
+    }
 }
 
 /// Returns the password checker used to verify client credentials.
@@ -437,11 +444,19 @@ QVariantMap QXmppServer::statistics() const
 
 void QXmppServer::addCaCertificates(const QString &path)
 {
-    if (!path.isEmpty() && !QFileInfo(path).isReadable())
+    // load certificates
+    if (path.isEmpty()) {
+        d->caCertificates = QList<QSslCertificate>();
+    } else if (QFileInfo(path).isReadable()) {
+        d->caCertificates = QSslCertificate::fromPath(path);
+    } else {
         d->warning(QString("SSL CA certificates are not readable %1").arg(path));
-    QList<QSslCertificate> certificates = QSslCertificate::fromPath(path);
-    d->serverForClients->addCaCertificates(certificates);
-    d->serverForServers->addCaCertificates(certificates);
+        d->caCertificates = QList<QSslCertificate>();
+    }
+
+    // reconfigure servers
+    foreach (QXmppSslServer *server, d->serversForClients + d->serversForServers)
+        server->addCaCertificates(d->caCertificates);
 }
 
 /// Sets the path for the local SSL certificate.
@@ -450,14 +465,34 @@ void QXmppServer::addCaCertificates(const QString &path)
 
 void QXmppServer::setLocalCertificate(const QString &path)
 {
+    // load certificate
     QSslCertificate certificate;
     QFile file(path);
-    if (!path.isEmpty() && file.open(QIODevice::ReadOnly | QIODevice::Text))
-        certificate = QSslCertificate(file.readAll());
-    else
+    if (path.isEmpty()) {
+        d->localCertificate = QSslCertificate();
+    } else if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        d->localCertificate = QSslCertificate(file.readAll());
+    } else {
         d->warning(QString("SSL certificate is not readable %1").arg(path));
-    d->serverForClients->setLocalCertificate(certificate);
-    d->serverForServers->setLocalCertificate(certificate);
+        d->localCertificate = QSslCertificate();
+    }
+
+    // reconfigure servers
+    foreach (QXmppSslServer *server, d->serversForClients + d->serversForServers)
+        server->setLocalCertificate(d->localCertificate);
+}
+
+/// Sets the local SSL certificate
+///
+/// \param certificate
+
+void QXmppServer::setLocalCertificate(const QSslCertificate &certificate)
+{
+    d->localCertificate = certificate;
+
+    // reconfigure servers
+    foreach (QXmppSslServer *server, d->serversForClients + d->serversForServers)
+        server->setLocalCertificate(d->localCertificate);
 }
 
 /// Sets the path for the local SSL private key.
@@ -466,14 +501,34 @@ void QXmppServer::setLocalCertificate(const QString &path)
 
 void QXmppServer::setPrivateKey(const QString &path)
 {
+    // load key
     QSslKey key;
     QFile file(path);
-    if (!path.isEmpty() && file.open(QIODevice::ReadOnly))
-        key = QSslKey(file.readAll(), QSsl::Rsa);
-    else
+    if (path.isEmpty()) {
+        d->privateKey = QSslKey();
+    } else if (file.open(QIODevice::ReadOnly)) {
+        d->privateKey = QSslKey(file.readAll(), QSsl::Rsa);
+    } else {
         d->warning(QString("SSL key is not readable %1").arg(path));
-    d->serverForClients->setPrivateKey(key);
-    d->serverForServers->setPrivateKey(key);
+        d->privateKey = QSslKey();
+    }
+
+    // reconfigure servers
+    foreach (QXmppSslServer *server, d->serversForClients + d->serversForServers)
+        server->setPrivateKey(d->privateKey);
+}
+
+/// Sets the local SSL private key.
+///
+/// \param key
+
+void QXmppServer::setPrivateKey(const QSslKey &key)
+{
+    d->privateKey = key;
+
+    // reconfigure servers
+    foreach (QXmppSslServer *server, d->serversForClients + d->serversForServers)
+        server->setPrivateKey(d->privateKey);
 }
 
 /// Listen for incoming XMPP client connections.
@@ -483,15 +538,30 @@ void QXmppServer::setPrivateKey(const QString &path)
 
 bool QXmppServer::listenForClients(const QHostAddress &address, quint16 port)
 {
+    bool check;
+    Q_UNUSED(check);
+
     if (d->domain.isEmpty()) {
         d->warning("No domain was specified!");
         return false;
     }
 
-    if (!d->serverForClients->listen(address, port)) {
-        d->warning(QString("Could not start listening for C2S on port %1").arg(QString::number(port)));
+    // create new server
+    QXmppSslServer *server = new QXmppSslServer(this);
+    server->addCaCertificates(d->caCertificates);
+    server->setLocalCertificate(d->localCertificate);
+    server->setPrivateKey(d->privateKey);
+
+    check = connect(server, SIGNAL(newConnection(QSslSocket*)),
+                    this, SLOT(_q_clientConnection(QSslSocket*)));
+    Q_ASSERT(check);
+
+    if (!server->listen(address, port)) {
+        d->warning(QString("Could not start listening for C2S on %1 %2").arg(address.toString(), QString::number(port)));
+        delete server;
         return false;
     }
+    d->serversForClients.insert(server);
 
     // start extensions
     d->loadExtensions(this);
@@ -505,8 +575,12 @@ bool QXmppServer::listenForClients(const QHostAddress &address, quint16 port)
 void QXmppServer::close()
 {
     // prevent new connections
-    d->serverForClients->close();
-    d->serverForServers->close();
+    foreach (QXmppSslServer *server, d->serversForClients + d->serversForServers) {
+        server->close();
+        delete server;
+    }
+    d->serversForClients.clear();
+    d->serversForServers.clear();
 
     // stop extensions
     d->stopExtensions();
@@ -527,15 +601,30 @@ void QXmppServer::close()
 
 bool QXmppServer::listenForServers(const QHostAddress &address, quint16 port)
 {
+    bool check;
+    Q_UNUSED(check);
+
     if (d->domain.isEmpty()) {
         d->warning("No domain was specified!");
         return false;
     }
 
-    if (!d->serverForServers->listen(address, port)) {
-        d->warning(QString("Could not start listening for S2S on port %1").arg(QString::number(port)));
+    // create new server
+    QXmppSslServer *server = new QXmppSslServer(this);
+    server->addCaCertificates(d->caCertificates);
+    server->setLocalCertificate(d->localCertificate);
+    server->setPrivateKey(d->privateKey);
+
+    check = connect(server, SIGNAL(newConnection(QSslSocket*)),
+                    this, SLOT(_q_serverConnection(QSslSocket*)));
+    Q_ASSERT(check);
+
+    if (!server->listen(address, port)) {
+        d->warning(QString("Could not start listening for S2S on %1 %2").arg(address.toString(), QString::number(port)));
+        delete server;
         return false;
     }
+    d->serversForServers.insert(server);
 
     // start extensions
     d->loadExtensions(this);
@@ -600,6 +689,7 @@ void QXmppServer::addIncomingClient(QXmppIncomingClient *stream)
 
     // add stream
     d->incomingClients.insert(stream);
+    setGauge("incoming-client.count", d->incomingClients.size());
 }
 
 /// Handle a new incoming TCP connection from a client.
@@ -673,6 +763,9 @@ void QXmppServer::_q_clientDisconnected()
         // emit signal
         if (!jid.isEmpty())
             emit clientDisconnected(jid);
+
+        // update counter
+        setGauge("incoming-client.count", d->incomingClients.size());
     }
 }
 
@@ -717,8 +810,10 @@ void QXmppServer::_q_outgoingServerDisconnected()
     if (!outgoing)
         return;
 
-    if (d->outgoingServers.remove(outgoing))
+    if (d->outgoingServers.remove(outgoing)) {
         outgoing->deleteLater();
+        setGauge("outgoing-server.count", d->outgoingServers.size());
+    }
 }
 
 /// Handle a new incoming TCP connection from a server.
@@ -753,6 +848,7 @@ void QXmppServer::_q_serverConnection(QSslSocket *socket)
 
     // add stream
     d->incomingServers.insert(stream);
+    setGauge("incoming-server.count", d->incomingServers.size());
 }
 
 /// Handle a stream disconnection for an incoming server.
@@ -763,8 +859,10 @@ void QXmppServer::_q_serverDisconnected()
     if (!incoming)
         return;
 
-    if (d->incomingServers.remove(incoming))
+    if (d->incomingServers.remove(incoming)) {
         incoming->deleteLater();
+        setGauge("incoming-server.count", d->incomingServers.size());
+    }
 }
 
 class QXmppSslServerPrivate
@@ -793,7 +891,11 @@ QXmppSslServer::~QXmppSslServer()
     delete d;
 }
 
+#if QT_VERSION < 0x050000
 void QXmppSslServer::incomingConnection(int socketDescriptor)
+#else
+void QXmppSslServer::incomingConnection(qintptr socketDescriptor)
+#endif
 {
     QSslSocket *socket = new QSslSocket;
     if (!socket->setSocketDescriptor(socketDescriptor)) {

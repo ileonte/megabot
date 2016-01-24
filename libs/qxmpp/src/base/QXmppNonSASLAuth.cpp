@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -86,7 +86,7 @@ void QXmppNonSASLAuthIq::parseElementFromChild(const QDomElement &element)
     QDomElement queryElement = element.firstChildElement("query");
     m_username = queryElement.firstChildElement("username").text();
     m_password = queryElement.firstChildElement("password").text();
-    m_digest = QByteArray::fromHex(queryElement.firstChildElement("digest").text().toAscii());
+    m_digest = QByteArray::fromHex(queryElement.firstChildElement("digest").text().toLatin1());
     m_resource = queryElement.firstChildElement("resource").text();
 }
 

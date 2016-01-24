@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -60,9 +60,6 @@ public:
     virtual bool handleStanza(const QDomElement &stanza);
     virtual QSet<QString> presenceSubscribers(const QString &jid);
     virtual QSet<QString> presenceSubscriptions(const QString &jid);
-
-    virtual QVariantMap statistics() const;
-    virtual void setStatistics(const QVariantMap &statistics);
 
     virtual bool start();
     virtual void stop();

@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Authors:
  *  Ian Reinhart Geiser
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -57,7 +57,12 @@ QVariant QXmppInvokable::dispatch( const QByteArray & method, const QList< QVari
 
     const char *typeName = metaObject()->method(idx).typeName();
     int resultType = QMetaType::type(typeName);
+
+#if QT_VERSION >= 0x050000
+    void *result = QMetaType::create(resultType, 0);
+#else
     void *result = QMetaType::construct(resultType, 0);
+#endif
 
     QGenericReturnArgument ret( typeName, result );
     QList<QGenericArgument> genericArgs;

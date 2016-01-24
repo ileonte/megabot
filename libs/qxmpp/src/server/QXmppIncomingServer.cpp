@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -84,6 +84,7 @@ QXmppIncomingServer::QXmppIncomingServer(QSslSocket *socket, const QString &doma
 
         setSocket(socket);
     }
+
     info(QString("Incoming server connection from %1").arg(d->origin()));
 }
 
@@ -110,7 +111,7 @@ void QXmppIncomingServer::handleStream(const QDomElement &streamElement)
         info(QString("Incoming server stream from %1 on %2").arg(from, d->origin()));
 
     // start stream
-    d->localStreamId = QXmppUtils::generateStanzaHash().toAscii();
+    d->localStreamId = QXmppUtils::generateStanzaHash().toLatin1();
     QString data = QString("<?xml version='1.0'?><stream:stream"
         " xmlns='%1' xmlns:db='%2' xmlns:stream='%3'"
         " id='%4' version=\"1.0\">").arg(

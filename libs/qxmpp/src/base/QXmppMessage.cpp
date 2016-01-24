@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Authors:
  *  Manjeet Dahiya
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -25,6 +25,7 @@
 #include <QDomElement>
 #include <QTextStream>
 #include <QXmlStreamWriter>
+#include <QPair>
 
 #include "QXmppConstants.h"
 #include "QXmppMessage.h"
@@ -47,12 +48,19 @@ static const char* message_types[] = {
     "headline"
 };
 
+static const char* marker_types[] = {
+    "",
+    "received",
+    "displayed",
+    "acknowledged"
+};
+
 static const char *ns_xhtml = "http://www.w3.org/1999/xhtml";
 
 enum StampType
 {
     LegacyDelayedDelivery,  // XEP-0091: Legacy Delayed Delivery
-    DelayedDelivery,        // XEP-0203: Delayed Delivery
+    DelayedDelivery         // XEP-0203: Delayed Delivery
 };
 
 class QXmppMessagePrivate : public QSharedData
@@ -74,6 +82,17 @@ public:
     // Request message receipt as per XEP-0184.
     QString receiptId;
     bool receiptRequested;
+
+    // XEP-0249: Direct MUC Invitations
+    QString mucInvitationJid;
+    QString mucInvitationPassword;
+    QString mucInvitationReason;
+
+    // XEP-0333: Chat Markers
+    bool markable;
+    QXmppMessage::Marker marker;
+    QString markedId;
+    QString markedThread;
 };
 
 /// Constructs a QXmppMessage.
@@ -95,6 +114,9 @@ QXmppMessage::QXmppMessage(const QString& from, const QString& to, const
     d->body = body;
     d->thread = thread;
     d->receiptRequested = false;
+
+    d->markable = false;
+    d->marker = NoMarker;
 }
 
 /// Constructs a copy of \a other.
@@ -188,6 +210,54 @@ QString QXmppMessage::receiptId() const
 void QXmppMessage::setReceiptId(const QString &id)
 {
     d->receiptId = id;
+}
+
+/// Returns the JID for a multi-user chat direct invitation as defined
+/// by XEP-0249: Direct MUC Invitations.
+
+QString QXmppMessage::mucInvitationJid() const
+{
+    return d->mucInvitationJid;
+}
+
+/// Sets the JID for a multi-user chat direct invitation as defined
+/// by XEP-0249: Direct MUC Invitations.
+
+void QXmppMessage::setMucInvitationJid(const QString &jid)
+{
+    d->mucInvitationJid = jid;
+}
+
+/// Returns the password for a multi-user chat direct invitation as defined
+/// by XEP-0249: Direct MUC Invitations.
+
+QString QXmppMessage::mucInvitationPassword() const
+{
+    return d->mucInvitationPassword;
+}
+
+/// Sets the \a password for a multi-user chat direct invitation as defined
+/// by XEP-0249: Direct MUC Invitations.
+
+void QXmppMessage::setMucInvitationPassword(const QString &password)
+{
+    d->mucInvitationPassword = password;
+}
+
+/// Returns the reason for a multi-user chat direct invitation as defined
+/// by XEP-0249: Direct MUC Invitations.
+
+QString QXmppMessage::mucInvitationReason() const
+{
+    return d->mucInvitationReason;
+}
+
+/// Sets the \a reason for a multi-user chat direct invitation as defined
+/// by XEP-0249: Direct MUC Invitations.
+
+void QXmppMessage::setMucInvitationReason(const QString &reason)
+{
+    d->mucInvitationReason = reason;
 }
 
 /// Returns the message's type.
@@ -289,6 +359,90 @@ void QXmppMessage::setXhtml(const QString &xhtml)
     d->xhtml = xhtml;
 }
 
+namespace
+{
+    static QList<QPair<QString, QString> > knownMessageSubelems()
+    {
+        QList<QPair<QString, QString> > result;
+        result << qMakePair(QString("body"), QString())
+               << qMakePair(QString("subject"), QString())
+               << qMakePair(QString("thread"), QString())
+               << qMakePair(QString("html"), QString())
+               << qMakePair(QString("received"), QString(ns_message_receipts))
+               << qMakePair(QString("request"), QString())
+               << qMakePair(QString("delay"), QString())
+               << qMakePair(QString("attention"), QString())
+               << qMakePair(QString("addresses"), QString());
+        for (int i = QXmppMessage::Active; i <= QXmppMessage::Paused; i++)
+            result << qMakePair(QString(chat_states[i]), QString());
+        return result;
+    }
+}
+
+/// Returns true if a message is markable, as defined
+/// XEP-0333: Chat Markers.
+
+bool QXmppMessage::isMarkable() const
+{
+    return d->markable;
+}
+
+/// Sets if the message is markable, as defined
+/// XEP-0333: Chat Markers.
+
+void QXmppMessage::setMarkable(const bool markable)
+{
+    d->markable = markable;
+}
+
+/// Returns the message's marker id, as defined
+/// XEP-0333: Chat Markers.
+
+QString QXmppMessage::markedId() const
+{
+    return d->markedId;
+}
+
+/// Sets the message's marker id, as defined
+/// XEP-0333: Chat Markers.
+
+void QXmppMessage::setMarkerId(const QString &markerId)
+{
+    d->markedId = markerId;
+}
+
+/// Returns the message's marker thread, as defined
+/// XEP-0333: Chat Markers.
+
+QString QXmppMessage::markedThread() const
+{
+    return d->markedThread;
+}
+
+/// Sets the message's marked thread, as defined
+/// XEP-0333: Chat Markers.
+
+void QXmppMessage::setMarkedThread(const QString &markedThread)
+{
+    d->markedThread = markedThread;
+}
+
+/// Returns the message's marker, as defined
+/// XEP-0333: Chat Markers.
+
+QXmppMessage::Marker QXmppMessage::marker() const
+{
+    return d->marker;
+}
+
+/// Sets the message's marker, as defined
+/// XEP-0333: Chat Markers
+
+void QXmppMessage::setMarker(const Marker marker)
+{
+    d->marker = marker;
+}
+
 /// \cond
 void QXmppMessage::parse(const QDomElement &element)
 {
@@ -359,22 +513,70 @@ void QXmppMessage::parse(const QDomElement &element)
     // XEP-0224: Attention
     d->attentionRequested = element.firstChildElement("attention").namespaceURI() == ns_attention;
 
+    // XEP-0333: Chat Markers
+    QDomElement markableElement = element.firstChildElement("markable");
+    if (!markableElement.isNull())
+    {
+        d->markable = true;
+    }
+    // check for all the marker types
+    QDomElement chatStateElement;
+    QXmppMessage::Marker marker = QXmppMessage::NoMarker;
+    for (int i = Received; i <= Acknowledged; i++)
+    {
+        chatStateElement = element.firstChildElement(marker_types[i]);
+        if (!chatStateElement.isNull() &&
+            chatStateElement.namespaceURI() == ns_chat_markers)
+        {
+            marker = static_cast<QXmppMessage::Marker>(i);
+            break;
+        }
+    }
+    // if marker is present, check it's the right ns
+    if (!chatStateElement.isNull())
+    {
+        if (chatStateElement.namespaceURI() == ns_chat_markers)
+        {
+            d->marker = marker;
+            d->markedId = chatStateElement.attribute("id", QString());
+            d->markedThread = chatStateElement.attribute("thread", QString());
+        }
+    }
+
+    const QList<QPair<QString, QString> > &knownElems = knownMessageSubelems();
+
     QXmppElementList extensions;
-    QDomElement xElement = element.firstChildElement("x");
+    QDomElement xElement = element.firstChildElement();
     while (!xElement.isNull())
     {
-        if (xElement.namespaceURI() == ns_legacy_delayed_delivery)
+        if (xElement.tagName() == "x")
         {
-            // XEP-0091: Legacy Delayed Delivery
-            const QString str = xElement.attribute("stamp");
-            d->stamp = QDateTime::fromString(str, "yyyyMMddThh:mm:ss");
-            d->stamp.setTimeSpec(Qt::UTC);
-            d->stampType = LegacyDelayedDelivery;
-        } else {
+            if (xElement.namespaceURI() == ns_legacy_delayed_delivery)
+            {
+                // if XEP-0203 exists, XEP-0091 has no need to parse because XEP-0091 is no more standard protocol)
+                if (d->stamp.isNull())
+                {
+                    // XEP-0091: Legacy Delayed Delivery
+                    const QString str = xElement.attribute("stamp");
+                    d->stamp = QDateTime::fromString(str, "yyyyMMddThh:mm:ss");
+                    d->stamp.setTimeSpec(Qt::UTC);
+                    d->stampType = LegacyDelayedDelivery;
+                }
+            } else if (xElement.namespaceURI() == ns_conference) {
+                // XEP-0249: Direct MUC Invitations
+                d->mucInvitationJid = xElement.attribute("jid");
+                d->mucInvitationPassword = xElement.attribute("password");
+                d->mucInvitationReason = xElement.attribute("reason");
+            }
+            else {
+                extensions << QXmppElement(xElement);
+            }
+        } else if (!knownElems.contains(qMakePair(xElement.tagName(), xElement.namespaceURI())) &&
+                   !knownElems.contains(qMakePair(xElement.tagName(), QString()))) {
             // other extensions
             extensions << QXmppElement(xElement);
         }
-        xElement = xElement.nextSiblingElement("x");
+        xElement = xElement.nextSiblingElement();
     }
     setExtensions(extensions);
 }
@@ -452,6 +654,34 @@ void QXmppMessage::toXml(QXmlStreamWriter *xmlWriter) const
     if (d->attentionRequested) {
         xmlWriter->writeStartElement("attention");
         xmlWriter->writeAttribute("xmlns", ns_attention);
+        xmlWriter->writeEndElement();
+    }
+
+    // XEP-0249: Direct MUC Invitations
+    if (!d->mucInvitationJid.isEmpty()) {
+        xmlWriter->writeStartElement("x");
+        xmlWriter->writeAttribute("xmlns", ns_conference);
+        xmlWriter->writeAttribute("jid", d->mucInvitationJid);
+        if (!d->mucInvitationPassword.isEmpty())
+            xmlWriter->writeAttribute("password", d->mucInvitationPassword);
+        if (!d->mucInvitationReason.isEmpty())
+            xmlWriter->writeAttribute("reason", d->mucInvitationReason);
+        xmlWriter->writeEndElement();
+    }
+
+    // XEP-0333: Chat Markers
+    if (d->markable) {
+        xmlWriter->writeStartElement("markable");
+        xmlWriter->writeAttribute("xmlns", ns_chat_markers);
+        xmlWriter->writeEndElement();
+    }
+    if (d->marker != NoMarker) {
+        xmlWriter->writeStartElement(marker_types[d->marker]);
+        xmlWriter->writeAttribute("xmlns", ns_chat_markers);
+        xmlWriter->writeAttribute("id", d->markedId);
+        if (!d->markedThread.isNull() && !d->markedThread.isEmpty()) {
+            xmlWriter->writeAttribute("thread", d->markedThread);
+        }
         xmlWriter->writeEndElement();
     }
 

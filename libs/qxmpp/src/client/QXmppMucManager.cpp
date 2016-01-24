@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -162,15 +162,9 @@ void QXmppMucManager::_q_messageReceived(const QXmppMessage &msg)
         return;
 
     // process room invitations
-    foreach (const QXmppElement &extension, msg.extensions())
-    {
-        if (extension.tagName() == "x" && extension.attribute("xmlns") == ns_conference)
-        {
-            const QString roomJid = extension.attribute("jid");
-            if (!roomJid.isEmpty() && (!d->rooms.contains(roomJid) || !d->rooms.value(roomJid)->isJoined()))
-                emit invitationReceived(roomJid, msg.from(), extension.attribute("reason"));
-            break;
-        }
+    const QString roomJid = msg.mucInvitationJid();
+    if (!roomJid.isEmpty() && (!d->rooms.contains(roomJid) || !d->rooms.value(roomJid)->isJoined())) {
+        emit invitationReceived(roomJid, msg.from(), msg.mucInvitationReason());
     }
 }
 
@@ -289,17 +283,8 @@ bool QXmppMucRoom::join()
     QXmppPresence packet = d->client->clientPresence();
     packet.setTo(d->ownJid());
     packet.setType(QXmppPresence::Available);
-    QXmppElement x;
-    x.setTagName("x");
-    x.setAttribute("xmlns", ns_muc);
-    if (!d->password.isEmpty())
-    {
-        QXmppElement p;
-        p.setTagName("password");
-        p.setValue(d->password);
-        x.appendChild(p);
-    }
-    packet.setExtensions(QXmppElementList() << x);
+    packet.setMucPassword(d->password);
+    packet.setMucSupported(true);
     return d->client->sendPacket(packet);
 }
 
@@ -364,16 +349,11 @@ QString QXmppMucRoom::nickName() const
 
 bool QXmppMucRoom::sendInvitation(const QString &jid, const QString &reason)
 {
-    QXmppElement x;
-    x.setTagName("x");
-    x.setAttribute("xmlns", ns_conference);
-    x.setAttribute("jid", d->jid);
-    x.setAttribute("reason", reason);
-
     QXmppMessage message;
     message.setTo(jid);
     message.setType(QXmppMessage::Normal);
-    message.setExtensions(QXmppElementList() << x);
+    message.setMucInvitationJid(d->jid);
+    message.setMucInvitationReason(reason);
     return d->client->sendPacket(message);
 }
 
@@ -401,16 +381,16 @@ void QXmppMucRoom::setNickName(const QString &nickName)
     if (nickName == d->nickName)
         return;
 
-    const bool wasJoined = isJoined();
-    d->nickName = nickName;
-    emit nickNameChanged(nickName);
-
     // if we had already joined the room, request nickname change
-    if (wasJoined) {
+    if (isJoined()) {
         QXmppPresence packet = d->client->clientPresence();
-        packet.setTo(d->ownJid());
+        packet.setTo(d->jid + "/" + nickName);
         packet.setType(QXmppPresence::Available);
         d->client->sendPacket(packet);
+    }
+    else {
+        d->nickName = nickName;
+        emit nickNameChanged(nickName);
     }
 }
 
@@ -701,6 +681,12 @@ void QXmppMucRoom::_q_presenceReceived(const QXmppPresence &presence)
 
             // check whether this was our own presence
             if (jid == d->ownJid()) {
+                const QString newNick = presence.mucItem().nick();
+                if (!newNick.isEmpty() && newNick != d->nickName) {
+                    d->nickName = newNick;
+                    emit nickNameChanged(newNick);
+                    return;
+                }
 
                 // check whether we were kicked
                 if (presence.mucStatusCodes().contains(307)) {
@@ -728,15 +714,12 @@ void QXmppMucRoom::_q_presenceReceived(const QXmppPresence &presence)
         }
     }
     else if (presence.type() == QXmppPresence::Error) {
-        foreach (const QXmppElement &extension, presence.extensions()) {
-            if (extension.tagName() == "x" && extension.attribute("xmlns") == ns_muc) {
-                // emit error
-                emit error(presence.error());
+        if (presence.isMucSupported()) {
+            // emit error
+            emit error(presence.error());
 
-                // notify the user we left the room
-                emit left();
-                break;
-            }
+            // notify the user we left the room
+            emit left();
         }
    }
 }

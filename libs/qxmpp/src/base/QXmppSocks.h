@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -36,7 +36,7 @@ class QXMPP_EXPORT QXmppSocksClient : public QTcpSocket
     Q_OBJECT
 
 public:
-    QXmppSocksClient(const QHostAddress &proxyAddress, quint16 proxyPort, QObject *parent=0);
+    QXmppSocksClient(const QString &proxyHost, quint16 proxyPort, QObject *parent=0);
     void connectToHost(const QString &hostName, quint16 hostPort);
 
 signals:
@@ -47,7 +47,7 @@ private slots:
     void slotReadyRead();
 
 private:
-    QHostAddress m_proxyAddress;
+    QString m_proxyHost;
     quint16 m_proxyPort;
     QString m_hostName;
     quint16 m_hostPort;
@@ -61,10 +61,8 @@ class QXMPP_EXPORT QXmppSocksServer : public QObject
 public:
     QXmppSocksServer(QObject *parent=0);
     void close();
-    bool isListening() const;
-    bool listen(const QHostAddress &address = QHostAddress::Any, quint16 port = 0);
+    bool listen(quint16 port = 0);
 
-    QHostAddress serverAddress() const;
     quint16 serverPort() const;
 
 signals:
@@ -76,6 +74,7 @@ private slots:
 
 private:
     QTcpServer *m_server;
+    QTcpServer *m_server_v6;
     QMap<QTcpSocket*, int> m_states;
 };
 

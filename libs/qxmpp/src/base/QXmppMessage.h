@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -57,11 +57,21 @@ public:
         Inactive,   ///< User has not been actively participating in the chat session.
         Gone,       ///< User has effectively ended their participation in the chat session.
         Composing,  ///< User is composing a message.
-        Paused,     ///< User had been composing but now has stopped.
+        Paused      ///< User had been composing but now has stopped.
     };
 
-    QXmppMessage(const QString& from = "", const QString& to = "",
-                 const QString& body = "", const QString& thread = "");
+    /// This enum describes a chat marker as defined by
+    /// XEP-0333 : Char Markers
+    enum Marker {
+        NoMarker = 0,
+        Received,
+        Displayed,
+        Acknowledged
+    };
+
+    QXmppMessage(const QString& from = QString(), const QString& to = QString(),
+                 const QString& body = QString(), const QString& thread = QString());
+
     QXmppMessage(const QXmppMessage &other);
     ~QXmppMessage();
 
@@ -75,6 +85,15 @@ public:
 
     bool isReceiptRequested() const;
     void setReceiptRequested(bool requested);
+
+    QString mucInvitationJid() const;
+    void setMucInvitationJid(const QString &jid);
+
+    QString mucInvitationPassword() const;
+    void setMucInvitationPassword(const QString &password);
+
+    QString mucInvitationReason() const;
+    void setMucInvitationReason(const QString &reason);
 
     QString receiptId() const;
     void setReceiptId(const QString &id);
@@ -96,6 +115,19 @@ public:
 
     QString xhtml() const;
     void setXhtml(const QString &xhtml);
+
+    // XEP-0333
+    bool isMarkable() const;
+    void setMarkable(const bool);
+
+    QString markedId() const;
+    void setMarkerId(const QString&);
+
+    QString markedThread() const;
+    void setMarkedThread(const QString&);
+
+    Marker marker() const;
+    void setMarker(const Marker);
 
     /// \cond
     void parse(const QDomElement &element);

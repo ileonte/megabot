@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -54,11 +54,6 @@ public:
     int reconnectionTries;
     QTimer *reconnectionTimer;
 
-    // managers
-    QXmppRosterManager *rosterManager;
-    QXmppVCardManager *vCardManager;
-    QXmppVersionManager *versionManager;
-
     void addProperCapability(QXmppPresence& presence);
     int getNextReconnectTime() const;
 
@@ -73,9 +68,6 @@ QXmppClientPrivate::QXmppClientPrivate(QXmppClient *qq)
     , receivedConflict(false)
     , reconnectionTries(0)
     , reconnectionTimer(0)
-    , rosterManager(0)
-    , vCardManager(0)
-    , versionManager(0)
     , q(qq)
 {
 }
@@ -101,47 +93,6 @@ int QXmppClientPrivate::getNextReconnectTime() const
     else
         return 60 * 1000;
 }
-
-/// \mainpage
-///
-/// QXmpp is a cross-platform C++ XMPP client library based on the Qt
-/// framework. It tries to use Qt's programming conventions in order to ease
-/// the learning curve for new programmers.
-///
-/// QXmpp based clients are built using QXmppClient instances which handle the
-/// establishment of the XMPP connection and provide a number of high-level
-/// "managers" to perform specific tasks. You can write your own managers to
-/// extend QXmpp by subclassing QXmppClientExtension.
-///
-/// <B>Main Class:</B>
-/// - QXmppClient
-///
-/// <B>Managers to perform specific tasks:</B>
-/// - QXmppRosterManager
-/// - QXmppVCardManager
-/// - QXmppTransferManager
-/// - QXmppMucManager
-/// - QXmppCallManager
-/// - QXmppArchiveManager
-/// - QXmppVersionManager
-/// - QXmppDiscoveryManager
-/// - QXmppEntityTimeManager
-///
-/// <B>XMPP stanzas:</B> If you are interested in a more low-level API, you can refer to these
-/// classes.
-/// - QXmppIq
-/// - QXmppMessage
-/// - QXmppPresence
-///
-/// <BR><BR>
-/// <B>Project Details:</B>
-///
-/// Project Page: http://code.google.com/p/qxmpp/
-/// <BR>
-/// Report Issues: http://code.google.com/p/qxmpp/issues/
-/// <BR>
-/// New Releases: http://code.google.com/p/qxmpp/downloads/
-///
 
 /// Creates a QXmppClient object.
 /// \param parent is passed to the QObject's constructor.
@@ -173,6 +124,10 @@ QXmppClient::QXmppClient(QObject *parent)
                     this, SIGNAL(iqReceived(QXmppIq)));
     Q_ASSERT(check);
 
+    check = connect(d->stream, SIGNAL(sslErrors(QList<QSslError>)),
+                    this, SIGNAL(sslErrors(QList<QSslError>)));
+    Q_ASSERT(check);
+
     check = connect(d->stream->socket(), SIGNAL(stateChanged(QAbstractSocket::SocketState)),
                     this, SLOT(_q_socketStateChanged(QAbstractSocket::SocketState)));
     Q_ASSERT(check);
@@ -199,17 +154,9 @@ QXmppClient::QXmppClient(QObject *parent)
     // logging
     setLogger(QXmppLogger::getLogger());
 
-    // create managers
-    // TODO move manager references to d->extensions
-    d->rosterManager = new QXmppRosterManager(this);
-    addExtension(d->rosterManager);
-
-    d->vCardManager = new QXmppVCardManager;
-    addExtension(d->vCardManager);
-
-    d->versionManager = new QXmppVersionManager;
-    addExtension(d->versionManager);
-
+    addExtension(new QXmppRosterManager(this));
+    addExtension(new QXmppVCardManager);
+    addExtension(new QXmppVersionManager);
     addExtension(new QXmppEntityTimeManager());
     addExtension(new QXmppDiscoveryManager());
 }
@@ -222,11 +169,21 @@ QXmppClient::~QXmppClient()
     delete d;
 }
 
-/// Registers a new extension with the client.
+/// Registers a new \a extension with the client.
 ///
 /// \param extension
 
 bool QXmppClient::addExtension(QXmppClientExtension* extension)
+{
+    return insertExtension(d->extensions.size(), extension);
+}
+
+/// Registers a new \a extension with the client at the given \a index.
+///
+/// \param index
+/// \param extension
+
+bool QXmppClient::insertExtension(int index, QXmppClientExtension *extension)
 {
     if (d->extensions.contains(extension))
     {
@@ -236,7 +193,7 @@ bool QXmppClient::addExtension(QXmppClientExtension* extension)
 
     extension->setParent(this);
     extension->setClient(this);
-    d->extensions << extension;
+    d->extensions.insert(index, extension);
     return true;
 }
 
@@ -370,7 +327,7 @@ bool QXmppClient::isConnected() const
 
 QXmppRosterManager& QXmppClient::rosterManager()
 {
-    return *d->rosterManager;
+    return *findExtension<QXmppRosterManager>();
 }
 
 /// Utility function to send message to all the resources associated with the
@@ -462,6 +419,14 @@ QAbstractSocket::SocketError QXmppClient::socketError()
     return d->stream->socket()->error();
 }
 
+/// Returns the human-readable description of the last socket error if error() is QXmppClient::SocketError.
+///
+
+QString QXmppClient::socketErrorString() const
+{
+    return d->stream->socket()->errorString();
+}
+
 /// Returns the XMPP stream error if QXmppClient::Error is QXmppClient::XmppStreamError.
 ///
 
@@ -476,7 +441,7 @@ QXmppStanza::Error::Condition QXmppClient::xmppStreamError()
 
 QXmppVCardManager& QXmppClient::vCardManager()
 {
-    return *d->vCardManager;
+    return *findExtension<QXmppVCardManager>();
 }
 
 /// Returns the reference to QXmppVersionManager, implementation of XEP-0092.
@@ -485,7 +450,7 @@ QXmppVCardManager& QXmppClient::vCardManager()
 
 QXmppVersionManager& QXmppClient::versionManager()
 {
-    return *d->versionManager;
+    return *findExtension<QXmppVersionManager>();
 }
 
 /// Give extensions a chance to handle incoming stanzas.
@@ -577,12 +542,20 @@ void QXmppClient::setLogger(QXmppLogger *logger)
         if (d->logger) {
             disconnect(this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
                        d->logger, SLOT(log(QXmppLogger::MessageType,QString)));
+            disconnect(this, SIGNAL(setGauge(QString,double)),
+                       d->logger, SLOT(setGauge(QString,double)));
+            disconnect(this, SIGNAL(updateCounter(QString,qint64)),
+                       d->logger, SLOT(updateCounter(QString,qint64)));
         }
 
         d->logger = logger;
         if (d->logger) {
             connect(this, SIGNAL(logMessage(QXmppLogger::MessageType,QString)),
                     d->logger, SLOT(log(QXmppLogger::MessageType,QString)));
+            connect(this, SIGNAL(setGauge(QString,double)),
+                    d->logger, SLOT(setGauge(QString,double)));
+            connect(this, SIGNAL(updateCounter(QString,qint64)),
+                    d->logger, SLOT(updateCounter(QString,qint64)));
         }
 
         emit loggerChanged(d->logger);

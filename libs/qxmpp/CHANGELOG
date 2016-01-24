@@ -1,5 +1,104 @@
+QXmpp 0.9.3 (Dec 3, 2015)
+-------------------------
+
+  - Add QXmppIceConnection::gatheringState property.
+  - Improve QXmppTransferManager::sendFile's handling of QIODevice ownership.
+  - Fix QXmppTransferManagerFix convering filename to a QUrl.
+
+QXmpp 0.9.2 (Sep 2, 2015)
+-------------------------
+
+  - Fix build error for debug builds.
+  - Allow QXmppJingleIq to have multiple contents.
+
+QXmpp 0.9.1 (Aug 30, 2015)
+--------------------------
+
+  - Fix build error when VPX support is enabled (issue 71).
+
+QXmpp 0.9.0 (Aug 28, 2015)
+--------------------------
+
+  - Fix phone numbers incorrectly read from / written to vCard as "PHONE"
+    element instead of "TEL" (issue 65).
+  - Make QXmppClient::connectToServer(QXmppConfiguration, QXmppPresence) a
+    slot (issue 63).
+  - Correctly receive data immediately following a SOCKS5 message (issue 64).
+  - Make QXmppStream handle end of incoming stream (issue 70).
+  - Add unit tests for QXmppCallManager and QXmppTransferManager.
+  - Improve ICE implementation to follow RFC 5245 more closely and hide
+    implementation details from public API.
+
+QXmpp 0.8.3 (Mar 13, 2015)
+--------------------------
+
+  - Add a QXmppClient::sslErrors signal to report SSL errors.
+  - Handle broken servers which send "bad-auth" instead of "not-authorized".
+  - Fix a compilation issue with Qt 5.5 due to a missing header include.
+  - Do not install test cases.
+  - Remove trailing comma after last item in enums.
+
+QXmpp 0.8.2 (Jan 7, 2015)
+-------------------------
+
+  - The previous release was missing an update to the VERSION definition,
+    resulting in stale pkg-config files. This release fixes this issue.
+  - Refactor HTML documentation so that "make docs" works in out-of-source
+    builds.
+  - Add support for Opus audio codec.
+  - Enable error concealment for VPX video codec.
+
+QXmpp 0.8.1 (Dec 19, 2014)
+--------------------------
+
+  - Use QString() instead of "" for default methods arguments, to enable
+    building project which use QT_NO_CAST_FROM_ASCII.
+  - Add support for legacy SSL.
+  - Add XEP-0333: Chat Markers attributes to QXmppMessage.
+  - Add QXmppClient::socketErrorString to retrieve socket error string.
+  - Add equality/inequality operators for QXmppVCardIq.
+  - Add "make check" command to run tests.
+
+QXmpp 0.8.0 (Mar 26, 2014)
+--------------------------
+
+  - Fix QXmppServer incoming connections with Qt5 (issue 175).
+  - Support for QXmppMessage extensions having tag names other than 'x'.
+  - Support for retrieving the source QDomElement that has been used to
+    initialize a QXmppElement.
+  - Add organizations info interface to QXmppVCardIq.
+  - Remove deprecated QXmppPresence::Status type.
+
+QXmpp 0.7.6 (Mar 9, 2013)
+-------------------------
+
+  - Add QXmppClient::insertExtension to insert an extension at a given index.
+  - Disable Facebook / Google / Facebook specific mechanisms if we do not
+    have the corresponding credentials.
+
+QXmpp 0.7.5 (Jan 11, 2013)
+--------------------------
+
+  - Replace toAscii/fromAscii with toLatin1/fromLatin1 for Qt 5 compatibility.
+  - Fix build using clang in pedantic mode.
+
+QXmpp 0.7.4 (Oct 1, 2012)
+-------------------------
+
+  - Add XEP-0249: Direct MUC Invitations attributes to QXmppMessage.
+  - Add XEP-0045: Multi-User Chat attributes to QXmppPresence.
+  - Improve GuiClient, stop using deprecated APIs.
+  - Improve QXmppServer:
+    * Move statistics to a counter / gauge system.
+    * Make it possible to call listenForClients and listenForServers
+      multiple times to supported multiple IP address / ports.
+  - Improve QXmppTransferManager:
+    * Change third argument of QXmppTransferManager::sendFile to a description.
+    * Enable file transfer using IPv6.
+    * Allow StreamHost::host to contain a host name.
+
 QXmpp 0.7.3 (Sep 7, 2012)
-------------------------
+-------------------------
 
   - Fix QXmppMucRoom::name(), only consider discovery IQs from the room.
 

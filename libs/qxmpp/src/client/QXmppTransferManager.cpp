@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -37,7 +37,8 @@
 #include "QXmppConstants.h"
 #include "QXmppIbbIq.h"
 #include "QXmppSocks.h"
-#include "QXmppStreamInitiationIq.h"
+#include "QXmppStreamInitiationIq_p.h"
+#include "QXmppStun.h"
 #include "QXmppTransferManager.h"
 #include "QXmppTransferManager_p.h"
 #include "QXmppUtils.h"
@@ -49,7 +50,7 @@ static QString streamHash(const QString &sid, const QString &initiatorJid, const
 {
     QCryptographicHash hash(QCryptographicHash::Sha1);
     QString str = sid + initiatorJid + targetJid;
-    hash.addData(str.toAscii());
+    hash.addData(str.toLatin1());
     return hash.result().toHex();
 }
 
@@ -61,6 +62,7 @@ public:
     QDateTime date;
     QByteArray hash;
     QString name;
+    QString description;
     qint64 size;
 };
 
@@ -113,6 +115,16 @@ void QXmppTransferFileInfo::setName(const QString &name)
     d->name = name;
 }
 
+QString QXmppTransferFileInfo::description() const
+{
+    return d->description;
+}
+
+void QXmppTransferFileInfo::setDescription(const QString &description)
+{
+    d->description = description;
+}
+
 qint64 QXmppTransferFileInfo::size() const
 {
     return d->size;
@@ -121,6 +133,15 @@ qint64 QXmppTransferFileInfo::size() const
 void QXmppTransferFileInfo::setSize(qint64 size)
 {
     d->size = size;
+}
+
+bool QXmppTransferFileInfo::isNull() const
+{
+    return d->date.isNull()
+        && d->description.isEmpty()
+        && d->hash.isEmpty()
+        && d->name.isEmpty()
+        && d->size == 0;
 }
 
 QXmppTransferFileInfo& QXmppTransferFileInfo::operator=(const QXmppTransferFileInfo &other)
@@ -134,6 +155,32 @@ bool QXmppTransferFileInfo::operator==(const QXmppTransferFileInfo &other) const
     return other.d->size == d->size &&
         other.d->hash == d->hash &&
         other.d->name == d->name;
+}
+
+void QXmppTransferFileInfo::parse(const QDomElement &element)
+{
+    d->date = QXmppUtils::datetimeFromString(element.attribute("date"));
+    d->hash = QByteArray::fromHex(element.attribute("hash").toLatin1());
+    d->name = element.attribute("name");
+    d->size = element.attribute("size").toLongLong();
+    d->description = element.firstChildElement("desc").text();
+}
+
+void QXmppTransferFileInfo::toXml(QXmlStreamWriter *writer) const
+{
+    writer->writeStartElement("file");
+    writer->writeAttribute("xmlns", ns_stream_initiation_file_transfer);
+    if (d->date.isValid())
+        writer->writeAttribute("date", QXmppUtils::datetimeToString(d->date));
+    if (!d->hash.isEmpty())
+        writer->writeAttribute("hash", d->hash.toHex());
+    if (!d->name.isEmpty())
+        writer->writeAttribute("name", d->name);
+    if (d->size > 0)
+        writer->writeAttribute("size", QString::number(d->size));
+    if (!d->description.isEmpty())
+        writer->writeTextElement("desc", d->description);
+    writer->writeEndElement();
 }
 
 class QXmppTransferJobPrivate
@@ -157,6 +204,7 @@ public:
     QString requestId;
     QXmppTransferJob::State state;
     QTime transferStart;
+    bool deviceIsOwn;
 
     // file meta-data
     QXmppTransferFileInfo fileInfo;
@@ -178,6 +226,7 @@ QXmppTransferJobPrivate::QXmppTransferJobPrivate()
     iodevice(0),
     method(QXmppTransferJob::NoMethod),
     state(QXmppTransferJob::OfferState),
+    deviceIsOwn(false),
     ibbSequence(0),
     socksSocket(0)
 {
@@ -379,7 +428,7 @@ void QXmppTransferJob::terminate(QXmppTransferJob::Error cause)
     d->state = FinishedState;
 
     // close IO device
-    if (d->iodevice)
+    if (d->iodevice && d->deviceIsOwn)
         d->iodevice->close();
 
     // close socket
@@ -432,9 +481,9 @@ void QXmppTransferIncomingJob::connectToNextHost()
 
     // try next host
     m_candidateHost = m_streamCandidates.takeFirst();
-    info(QString("Connecting to streamhost: %1 (%2:%3)").arg(
+    info(QString("Connecting to streamhost: %1 (%2 %3)").arg(
             m_candidateHost.jid(),
-            m_candidateHost.host().toString(),
+            m_candidateHost.host(),
             QString::number(m_candidateHost.port())));
 
     const QString hostName = streamHash(d->sid,
@@ -494,9 +543,9 @@ void QXmppTransferIncomingJob::_q_candidateReady()
     if (!m_candidateClient)
         return;
 
-    info(QString("Connected to streamhost: %1 (%2:%3)").arg(
+    info(QString("Connected to streamhost: %1 (%2 %3)").arg(
             m_candidateHost.jid(),
-            m_candidateHost.host().toString(),
+            m_candidateHost.host(),
             QString::number(m_candidateHost.port())));
 
     setState(QXmppTransferJob::TransferState);
@@ -527,9 +576,9 @@ void QXmppTransferIncomingJob::_q_candidateDisconnected()
     if (!m_candidateClient)
         return;
 
-    warning(QString("Failed to connect to streamhost: %1 (%2:%3)").arg(
+    warning(QString("Failed to connect to streamhost: %1 (%2 %3)").arg(
             m_candidateHost.jid(),
-            m_candidateHost.host().toString(),
+            m_candidateHost.host(),
             QString::number(m_candidateHost.port())));
 
     m_candidateClient->deleteLater();
@@ -575,9 +624,9 @@ void QXmppTransferOutgoingJob::connectToProxy()
     bool check;
     Q_UNUSED(check);
 
-    info(QString("Connecting to proxy: %1 (%2:%3)").arg(
+    info(QString("Connecting to proxy: %1 (%2 %3)").arg(
             d->socksProxy.jid(),
-            d->socksProxy.host().toString(),
+            d->socksProxy.host(),
             QString::number(d->socksProxy.port())));
 
     const QString hostName = streamHash(d->sid,
@@ -665,7 +714,7 @@ void QXmppTransferOutgoingJob::_q_sendData()
         terminate(QXmppTransferJob::FileAccessError);
         return;
     }
-    if (length > 0)
+    if (length >= 0)
     {
         d->socksSocket->write(buffer, length);
         delete [] buffer;
@@ -747,11 +796,10 @@ QXmppTransferManager::QXmppTransferManager()
 
     // start SOCKS server
     d->socksServer = new QXmppSocksServer(this);
-    if (d->socksServer->listen()) {
-        check = connect(d->socksServer, SIGNAL(newConnection(QTcpSocket*,QString,quint16)),
-                        this, SLOT(_q_socksServerConnected(QTcpSocket*,QString,quint16)));
-        Q_ASSERT(check);
-    } else {
+    check = connect(d->socksServer, SIGNAL(newConnection(QTcpSocket*,QString,quint16)),
+                    this, SLOT(_q_socksServerConnected(QTcpSocket*,QString,quint16)));
+    Q_ASSERT(check);
+    if (!d->socksServer->listen()) {
         qWarning("QXmppSocksServer could not start listening");
     }
 }
@@ -1212,35 +1260,23 @@ void QXmppTransferManager::_q_jobStateChanged(QXmppTransferJob::State state)
             this, SLOT(_q_jobError(QXmppTransferJob::Error)));
     Q_ASSERT(check);
 
-    QXmppElement value;
-    value.setTagName("value");
+    QXmppDataForm form;
+    form.setType(QXmppDataForm::Submit);
+
+    QXmppDataForm::Field methodField(QXmppDataForm::Field::ListSingleField);
+    methodField.setKey("stream-method");
     if (job->method() == QXmppTransferJob::InBandMethod)
-        value.setValue(ns_ibb);
+        methodField.setValue(ns_ibb);
     else if (job->method() == QXmppTransferJob::SocksMethod)
-        value.setValue(ns_bytestreams);
-
-    QXmppElement field;
-    field.setTagName("field");
-    field.setAttribute("var", "stream-method");
-    field.appendChild(value);
-
-    QXmppElement x;
-    x.setTagName("x");
-    x.setAttribute("xmlns", "jabber:x:data");
-    x.setAttribute("type", "submit");
-    x.appendChild(field);
-
-    QXmppElement feature;
-    feature.setTagName("feature");
-    feature.setAttribute("xmlns", ns_feature_negotiation);
-    feature.appendChild(x);
+        methodField.setValue(ns_bytestreams);
+    form.setFields(QList<QXmppDataForm::Field>() << methodField);
 
     QXmppStreamInitiationIq response;
     response.setTo(job->jid());
     response.setId(job->d->offerId);
     response.setType(QXmppIq::Result);
     response.setProfile(QXmppStreamInitiationIq::FileTransfer);
-    response.setSiItems(QXmppElementList() << feature);
+    response.setFeatureForm(form);
 
     client()->sendPacket(response);
 
@@ -1248,14 +1284,19 @@ void QXmppTransferManager::_q_jobStateChanged(QXmppTransferJob::State state)
     emit jobStarted(job);
 }
 
-/// Send file to a remote party.
+/// Sends the file at \a filePath to a remote party.
 ///
 /// The remote party will be given the choice to accept or refuse the transfer.
 ///
-QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, const QString &filePath, const QString &sid)
+/// Returns 0 if the \a jid is not valid or if the file at \a filePath cannot be read.
+///
+/// \note The recipient's \a jid must be a full JID with a resource, for instance "user@host/resource".
+///
+
+QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, const QString &filePath, const QString &description)
 {
-    if (jid.isEmpty()) {
-        warning("Refusing to send file to an empty jid");
+    if (QXmppUtils::jidToResource(jid).isEmpty()) {
+        warning("The file recipient's JID must be a full JID");
         return 0;
     }
 
@@ -1265,9 +1306,10 @@ QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, const QStri
     fileInfo.setDate(info.lastModified());
     fileInfo.setName(info.fileName());
     fileInfo.setSize(info.size());
+    fileInfo.setDescription(description);
 
     // open file
-    QIODevice *device = new QFile(filePath);
+    QIODevice *device = new QFile(filePath, this);
     if (!device->open(QIODevice::ReadOnly))
     {
         warning(QString("Could not read from %1").arg(filePath));
@@ -1290,22 +1332,29 @@ QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, const QStri
     }
 
     // create job
-    QXmppTransferJob *job = sendFile(jid, device, fileInfo, sid);
-    job->setLocalFileUrl(filePath);
+    QXmppTransferJob *job = sendFile(jid, device, fileInfo);
+    job->setLocalFileUrl(QUrl::fromLocalFile(filePath));
+    job->d->deviceIsOwn = true;
     return job;
 }
 
-/// Send file to a remote party.
+/// Sends the file in \a device to a remote party.
 ///
 /// The remote party will be given the choice to accept or refuse the transfer.
 ///
+/// Returns 0 if the \a jid is not valid.
+///
+/// \note The recipient's \a jid must be a full JID with a resource, for instance "user@host/resource".
+/// \note The ownership of the \a device should be managed by the caller.
+///
+
 QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, QIODevice *device, const QXmppTransferFileInfo &fileInfo, const QString &sid)
 {
     bool check;
     Q_UNUSED(check);
 
-    if (jid.isEmpty()) {
-        warning("Refusing to send file to an empty jid");
+    if (QXmppUtils::jidToResource(jid).isEmpty()) {
+        warning("The file recipient's JID must be a full JID");
         return 0;
     }
 
@@ -1316,8 +1365,6 @@ QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, QIODevice *
         job->d->sid = sid;
     job->d->fileInfo = fileInfo;
     job->d->iodevice = device;
-    if (device)
-        device->setParent(job);
 
     // check file is open
     if (!device || !device->isReadable())
@@ -1333,59 +1380,17 @@ QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, QIODevice *
         return job;
     }
 
-    // prepare negotiation
-    QXmppElementList items;
+    // collect supported stream methods
+    QXmppDataForm form;
+    form.setType(QXmppDataForm::Form);
 
-    QXmppElement file;
-    file.setTagName("file");
-    file.setAttribute("xmlns", ns_stream_initiation_file_transfer);
-    file.setAttribute("date", QXmppUtils::datetimeToString(job->fileDate()));
-    file.setAttribute("hash", job->fileHash().toHex());
-    file.setAttribute("name", job->fileName());
-    file.setAttribute("size", QString::number(job->fileSize()));
-    items.append(file);
-
-    QXmppElement feature;
-    feature.setTagName("feature");
-    feature.setAttribute("xmlns", ns_feature_negotiation);
-
-    QXmppElement x;
-    x.setTagName("x");
-    x.setAttribute("xmlns", "jabber:x:data");
-    x.setAttribute("type", "form");
-    feature.appendChild(x);
-
-    QXmppElement field;
-    field.setTagName("field");
-    field.setAttribute("var", "stream-method");
-    field.setAttribute("type", "list-single");
-    x.appendChild(field);
-
-    // add supported stream methods
+    QXmppDataForm::Field methodField(QXmppDataForm::Field::ListSingleField);
+    methodField.setKey("stream-method");
     if (d->supportedMethods & QXmppTransferJob::InBandMethod)
-    {
-        QXmppElement option;
-        option.setTagName("option");
-        field.appendChild(option);
-
-        QXmppElement value;
-        value.setTagName("value");
-        value.setValue(ns_ibb);
-        option.appendChild(value);
-    }
+        methodField.setOptions(methodField.options() << qMakePair(QString(), QString::fromLatin1(ns_ibb)));
     if (d->supportedMethods & QXmppTransferJob::SocksMethod)
-    {
-        QXmppElement option;
-        option.setTagName("option");
-        field.appendChild(option);
-
-        QXmppElement value;
-        value.setTagName("value");
-        value.setValue(ns_bytestreams);
-        option.appendChild(value);
-    }
-
-    items.append(feature);
+        methodField.setOptions(methodField.options() << qMakePair(QString(), QString::fromLatin1(ns_bytestreams)));
+    form.setFields(QList<QXmppDataForm::Field>() << methodField);
 
     // start job
     d->jobs.append(job);
@@ -1405,7 +1410,8 @@ QXmppTransferJob *QXmppTransferManager::sendFile(const QString &jid, QIODevice *
     request.setType(QXmppIq::Set);
     request.setTo(jid);
     request.setProfile(QXmppStreamInitiationIq::FileTransfer);
-    request.setSiItems(items);
+    request.setFileInfo(job->d->fileInfo);
+    request.setFeatureForm(form);
     request.setSiId(job->d->sid);
     job->d->requestId = request.id();
     client()->sendPacket(request);
@@ -1437,26 +1443,13 @@ void QXmppTransferManager::socksServerSendOffer(QXmppTransferJob *job)
     QList<QXmppByteStreamIq::StreamHost> streamHosts;
 
     // discover local IPs
-    if (!d->proxyOnly)
-    {
-        foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces())
-        {
-            if (!(interface.flags() & QNetworkInterface::IsRunning) ||
-                interface.flags() & QNetworkInterface::IsLoopBack)
-                continue;
-
-            foreach (const QNetworkAddressEntry &entry, interface.addressEntries())
-            {
-                if (entry.ip().protocol() != QAbstractSocket::IPv4Protocol ||
-                    entry.netmask().isNull())
-                    continue;
-
-                QXmppByteStreamIq::StreamHost streamHost;
-                streamHost.setHost(entry.ip());
-                streamHost.setPort(d->socksServer->serverPort());
-                streamHost.setJid(ownJid);
-                streamHosts.append(streamHost);
-            }
+    if (!d->proxyOnly) {
+        foreach (const QHostAddress &address, QXmppIceComponent::discoverAddresses()) {
+            QXmppByteStreamIq::StreamHost streamHost;
+            streamHost.setJid(ownJid);
+            streamHost.setHost(address.toString());
+            streamHost.setPort(d->socksServer->serverPort());
+            streamHosts.append(streamHost);
         }
     }
 
@@ -1498,24 +1491,14 @@ void QXmppTransferManager::streamInitiationResultReceived(const QXmppStreamIniti
         job->state() != QXmppTransferJob::OfferState)
         return;
 
-    foreach (const QXmppElement &item, iq.siItems())
-    {
-        if (item.tagName() == "feature" && item.attribute("xmlns") == ns_feature_negotiation)
-        {
-            QXmppElement field = item.firstChildElement("x").firstChildElement("field");
-            while (!field.isNull())
-            {
-                if (field.attribute("var") == "stream-method")
-                {
-                    if ((field.firstChildElement("value").value() == ns_ibb) &&
-                        (d->supportedMethods & QXmppTransferJob::InBandMethod))
-                        job->d->method = QXmppTransferJob::InBandMethod;
-                    else if ((field.firstChildElement("value").value() == ns_bytestreams) &&
-                             (d->supportedMethods & QXmppTransferJob::SocksMethod))
-                        job->d->method = QXmppTransferJob::SocksMethod;
-                }
-                field = field.nextSiblingElement("field");
-            }
+    foreach (const QXmppDataForm::Field &field, iq.featureForm().fields()) {
+        if (field.key() == "stream-method") {
+            if ((field.value().toString() == ns_ibb) &&
+                (d->supportedMethods & QXmppTransferJob::InBandMethod))
+                job->d->method = QXmppTransferJob::InBandMethod;
+            else if ((field.value().toString() == ns_bytestreams) &&
+                     (d->supportedMethods & QXmppTransferJob::SocksMethod))
+                job->d->method = QXmppTransferJob::SocksMethod;
         }
     }
 
@@ -1533,12 +1516,6 @@ void QXmppTransferManager::streamInitiationResultReceived(const QXmppStreamIniti
         job->d->requestId = openIq.id();
         client()->sendPacket(openIq);
     } else if (job->method() == QXmppTransferJob::SocksMethod) {
-        if (!d->socksServer->isListening())
-        {
-            warning("QXmppSocksServer is not listening");
-            job->terminate(QXmppTransferJob::ProtocolError);
-            return;
-        }
         if (!d->proxy.isEmpty())
         {
             job->d->socksProxy.setJid(d->proxy);
@@ -1600,34 +1577,16 @@ void QXmppTransferManager::streamInitiationSetReceived(const QXmppStreamInitiati
     job->d->offerId = iq.id();
     job->d->sid = iq.siId();
     job->d->mimeType = iq.mimeType();
-    foreach (const QXmppElement &item, iq.siItems())
-    {
-        if (item.tagName() == "feature" && item.attribute("xmlns") == ns_feature_negotiation)
-        {
-            QXmppElement field = item.firstChildElement("x").firstChildElement("field");
-            while (!field.isNull())
-            {
-                if (field.attribute("var") == "stream-method" && field.attribute("type") == "list-single")
-                {
-                    QXmppElement option = field.firstChildElement("option");
-                    while (!option.isNull())
-                    {
-                        if (option.firstChildElement("value").value() == ns_ibb)
-                            offeredMethods = offeredMethods | QXmppTransferJob::InBandMethod;
-                        else if (option.firstChildElement("value").value() == ns_bytestreams)
-                            offeredMethods = offeredMethods | QXmppTransferJob::SocksMethod;
-                        option = option.nextSiblingElement("option");
-                    }
-                }
-                field = field.nextSiblingElement("field");
+    job->d->fileInfo = iq.fileInfo();
+    foreach (const QXmppDataForm::Field &field, iq.featureForm().fields()) {
+        if (field.key() == "stream-method") {
+            QPair<QString, QString> option;
+            foreach (option, field.options()) {
+                if (option.second == ns_ibb)
+                    offeredMethods = offeredMethods | QXmppTransferJob::InBandMethod;
+                else if (option.second == ns_bytestreams)
+                    offeredMethods = offeredMethods | QXmppTransferJob::SocksMethod;
             }
-        }
-        else if (item.tagName() == "file" && item.attribute("xmlns") == ns_stream_initiation_file_transfer)
-        {
-            job->d->fileInfo.setDate(QXmppUtils::datetimeFromString(item.attribute("date")));
-            job->d->fileInfo.setHash(QByteArray::fromHex(item.attribute("hash").toAscii()));
-            job->d->fileInfo.setName(item.attribute("name"));
-            job->d->fileInfo.setSize(item.attribute("size").toLongLong());
         }
     }
 

@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -116,22 +116,6 @@ QSet<QString> QXmppServerExtension::presenceSubscriptions(const QString &jid)
 {
     Q_UNUSED(jid);
     return QSet<QString>();
-}
-
-/// Returns the extension's statistics.
-///
-
-QVariantMap QXmppServerExtension::statistics() const
-{
-    return QVariantMap();
-}
-
-/// Sets the extension's statistics.
-///
-
-void QXmppServerExtension::setStatistics(const QVariantMap &statistics)
-{
-    Q_UNUSED(statistics);
 }
 
 /// Starts the extension.

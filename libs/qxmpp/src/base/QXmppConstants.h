@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -115,5 +115,7 @@ extern const char* ns_attention;
 extern const char* ns_bob;
 // XEP-0249: Direct MUC Invitations
 extern const char* ns_conference;
+// XEP-0333: Char Markers
+extern const char* ns_chat_markers;
 
 #endif // QXMPPCONSTANTS_H

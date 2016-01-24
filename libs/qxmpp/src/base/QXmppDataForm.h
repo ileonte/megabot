@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Jeremy Lainé
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -25,14 +25,10 @@
 #define QXMPPDATAFORM_H
 
 #include <QPair>
-#include <QSharedDataPointer>
-#include <QString>
 #include <QVariant>
-#include <QXmlStreamWriter>
 
-#include "QXmppGlobal.h"
+#include "QXmppStanza.h"
 
-class QDomElement;
 class QXmppDataFormPrivate;
 class QXmppDataFormFieldPrivate;
 class QXmppDataFormMediaPrivate;
@@ -91,7 +87,7 @@ public:
             ListSingleField,
             TextMultiField,
             TextPrivateField,
-            TextSingleField,
+            TextSingleField
         };
 
         Field(QXmppDataForm::Field::Type type = QXmppDataForm::Field::TextSingleField);
@@ -138,7 +134,7 @@ public:
                 ///< form-processing entity.
         Cancel, ///< The form-submitting entity has cancelled submission
                 ///< of data to the form-processing entity.
-        Result, ///< The form-processing entity is returning data
+        Result  ///< The form-processing entity is returning data
                 ///< (e.g., search results) to the form-submitting entity,
                 ///< or the data is a generic data set.
     };

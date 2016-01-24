@@ -1,11 +1,11 @@
 /*
- * Copyright (C) 2008-2012 The QXmpp developers
+ * Copyright (C) 2008-2014 The QXmpp developers
  *
  * Author:
  *  Manjeet Dahiya
  *
  * Source:
- *  http://code.google.com/p/qxmpp
+ *  https://github.com/qxmpp-project/qxmpp
  *
  * This file is a part of QXmpp library.
  *
@@ -30,6 +30,8 @@
 #include "QXmppConfiguration.h"
 #include "QXmppLogger.h"
 #include "QXmppPresence.h"
+
+class QSslError;
 
 class QXmppClientExtension;
 class QXmppClientPrivate;
@@ -90,7 +92,7 @@ public:
         NoError,            ///< No error.
         SocketError,        ///< Error due to TCP socket.
         KeepAliveError,     ///< Error due to no response to a keep alive.
-        XmppStreamError,    ///< Error due to XML stream.
+        XmppStreamError     ///< Error due to XML stream.
     };
 
     /// This enumeration describes a client state.
@@ -98,13 +100,14 @@ public:
     {
         DisconnectedState,  ///< Disconnected from the server.
         ConnectingState,    ///< Trying to connect to the server.
-        ConnectedState,     ///< Connected to the server.
+        ConnectedState      ///< Connected to the server.
     };
 
     QXmppClient(QObject *parent = 0);
     ~QXmppClient();
 
     bool addExtension(QXmppClientExtension* extension);
+    bool insertExtension(int index, QXmppClientExtension* extension);
     bool removeExtension(QXmppClientExtension* extension);
 
     QList<QXmppClientExtension*> extensions();
@@ -134,9 +137,6 @@ public:
         return 0;
     }
 
-    void connectToServer(const QXmppConfiguration&,
-                         const QXmppPresence& initialPresence =
-                         QXmppPresence());
     bool isAuthenticated() const;
     bool isConnected() const;
 
@@ -148,6 +148,7 @@ public:
     void setLogger(QXmppLogger *logger);
 
     QAbstractSocket::SocketError socketError();
+    QString socketErrorString() const;
     State state() const;
     QXmppStanza::Error::Condition xmppStreamError();
 
@@ -210,10 +211,17 @@ signals:
     /// management, setting-getting vCards etc is done using iq stanzas.
     void iqReceived(const QXmppIq &iq);
 
+    /// This signal is emitted to indicate that one or more SSL errors were
+    /// encountered while establishing the identity of the server.
+    void sslErrors(const QList<QSslError> &errors);
+
     /// This signal is emitted when the client state changes.
     void stateChanged(QXmppClient::State state);
 
 public slots:
+    void connectToServer(const QXmppConfiguration&,
+                         const QXmppPresence& initialPresence =
+                         QXmppPresence());
     void connectToServer(const QString &jid,
                          const QString &password);
     void disconnectFromServer();
