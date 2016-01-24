@@ -5,8 +5,6 @@
 #include "cscriptcontroller.h"
 #include "cjsonparser.h"
 
-using namespace QtJson;
-
 CMegaBot::CMegaBot( int &argc, char **argv ) : QCoreApplication( argc, argv )
 {
 	m_mode   = Unknown;

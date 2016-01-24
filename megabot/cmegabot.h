@@ -16,8 +16,6 @@
 #include <QFileInfo>
 #include <QVariant>
 
-#include <json.h>
-
 #include <QXmppUtils.h>
 #include <QXmppClient.h>
 #include <QXmppLogger.h>
@@ -25,7 +23,6 @@
 #include <QXmppPresence.h>
 #include <QXmppMucManager.h>
 #include <QXmppConfiguration.h>
-#include <QXmppReconnectionManager.h>
 
 #define MB_SCRIPT_RUNNER_NAME "[megabot-script]"
 #define MB_KILL_SWITCH "/tmp/mb_kill_switch"

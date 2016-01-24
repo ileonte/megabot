@@ -2,6 +2,8 @@
 #include "cluarunner.h"
 #include "ctlpackets.h"
 
+#include <QXmppPresence.h>
+
 #include <qmath.h>
 #include <ctype.h>
 
@@ -615,7 +617,7 @@ bool CLuaRunner::setupScript()
 	PRESENCE( Unsubscribed );
 	PRESENCE( Probe );
 
-#define STATUS( __i ) lua_pushinteger( L, ( int )QXmppPresence::Status::__i ); lua_setglobal( L, "STAT_" #__i )
+#define STATUS( __i ) lua_pushinteger( L, ( int )QXmppPresence::__i ); lua_setglobal( L, "STAT_" #__i )
 	STATUS( Online );
 	STATUS( Away );
 	STATUS( XA );

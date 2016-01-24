@@ -11,6 +11,5 @@
 #include "clogger.h"
 
 #define fmt( __s ) QString( __s )
-#define ptr( __p ) ({ char __b[32] = {}; snprintf( __b, sizeof( __b ), "%p", ( void * )__p ); QString __r( __b ); __r; })
 
 #endif // __MAIN_H_INCLUDED__

@@ -43,7 +43,7 @@ namespace Utils {
 					goto out_of_str_break;
 				}
 
-				switch ( str.at( end ).toAscii() ) {
+				switch ( str.at( end ).toLatin1() ) {
 					case '\'':
 					case '"': {
 						if ( esc ) {
@@ -106,7 +106,7 @@ namespace Utils {
 					default: {
 						if ( esc ) {
 							esc = false;
-							switch ( str.at( end ).toAscii() ) {
+							switch ( str.at( end ).toLatin1() ) {
 								case 'n': {
 									piece += '\n';
 									break;
