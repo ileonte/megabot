@@ -13,7 +13,7 @@
 
 static inline QString __t()
 {
-	return QDateTime::currentDateTime().toString( "MMM dd hh:mm:ss" );
+	return QDateTime::currentDateTime().toString( "yyyy MMM dd hh:mm:ss" );
 }
 
 void mb_trace( QObject *obj, int line PNU, const QString &file PNU, const QString &message )
