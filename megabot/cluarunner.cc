@@ -56,6 +56,9 @@ void CLuaRunner::onRoomConfigPacket( const CRoomConfigPacket &pkt )
 	lua_pushstring( L, "nickName" );
 	lua_pushstring( L, pkt.nickName().toUtf8().data() );
 	lua_settable( L, -3 );
+	lua_pushstring( L, "topic" );
+	lua_pushstring( L, pkt.topic().toUtf8().data() );
+	lua_settable( L, -3 );
 	if ( !safeCallLua( 1, 0 ) )
 		LOG( fmt( "safeCallLua(): %1" ).arg( getLuaError() ) );
 }

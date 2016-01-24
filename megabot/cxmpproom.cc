@@ -16,6 +16,11 @@ CXMPPRoom::~CXMPPRoom()
 	part();
 }
 
+void CXMPPRoom::topicChanged()
+{
+	handleRoomConfig();
+}
+
 CScriptController *CXMPPRoom::findScript( const QString &name )
 {
 	for ( int i = 0; i < m_scripts.size(); i++ )
@@ -29,6 +34,16 @@ void CXMPPRoom::roomJoined()
 		CScriptController *script = m_scripts[i];
 		if ( script->autoRun() ) script->runScript();
 	}
+
+	connect( m_mucroom, SIGNAL( subjectChanged( QString ) ), this, SLOT( topicChanged() ) );
+}
+
+QString CXMPPRoom::topic() const
+{
+	if (!m_mucroom)
+		return "";
+
+	return m_mucroom->subject();
 }
 
 bool CXMPPRoom::join()
@@ -56,6 +71,14 @@ void CXMPPRoom::part()
 	m_mucroom->leave();
 	delete m_mucroom;
 	m_mucroom = NULL;
+}
+
+void CXMPPRoom::handleRoomConfig()
+{
+	for ( int i = 0; i < m_scripts.size(); i++ ) {
+		CScriptController *script = m_scripts[i];
+		script->sendRoomConfig();
+	}
 }
 
 void CXMPPRoom::handleRoomPresence( const QXmppPresence &presence )

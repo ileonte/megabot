@@ -60,10 +60,8 @@ bool CScriptController::runScript()
 		connect( m_comm, SIGNAL( disconnected() ), this, SLOT( socketDisconnected() ) );
 		connect( m_comm, SIGNAL( readyRead() ), this, SLOT( socketReadyRead() ) );
 
-		QByteArray data;
 		CRoomConfigPacket pkt( m_room );
-		pkt.pack( data );
-		m_comm->write( data );
+		sendPacket( pkt );
 	} else {
 		/* child */
 		close( m_sockfds[0] );
@@ -130,6 +128,12 @@ void CScriptController::socketReadyRead()
 
 		emit message( pkt );
 	}
+}
+
+void CScriptController::sendRoomConfig()
+{
+	CRoomConfigPacket pkt( m_room );
+	sendPacket( pkt );
 }
 
 void CScriptController::sendRoomMessage( const QXmppMessage &msg )

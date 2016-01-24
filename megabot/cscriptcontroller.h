@@ -65,6 +65,7 @@ signals:
 	void message( const CScriptMessagePacket &msg );
 
 public slots:
+	void sendRoomConfig();
 	void sendRoomMessage( const QXmppMessage &msg );
 	void sendRoomPresence( const QXmppPresence &presence );
 

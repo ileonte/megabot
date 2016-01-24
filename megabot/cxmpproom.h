@@ -25,6 +25,7 @@ private:
 private slots:
 	void scriptMessage( const CScriptMessagePacket &pkt );
 	void roomJoined();
+	void topicChanged();
 
 public:
 	CXMPPRoom( CXMPPServer *parent );
@@ -42,6 +43,8 @@ public:
 
 	QString password() const { return m_password; }
 	void setPassword( const QString &v ) { part(); m_password = v; }
+
+	QString topic() const;
 
 	bool autoJoin() const { return m_autoJoin; }
 	void setAutoJoin( bool yesno ) { m_autoJoin = yesno; }
@@ -64,6 +67,7 @@ public:
 	friend class CMegaBot;
 
 public slots:
+	void handleRoomConfig();
 	void handleRoomPresence( const QXmppPresence &presence );
 	void handleRoomMessage( const QXmppMessage &msg );
 

@@ -41,6 +41,7 @@ private:
 	QString m_roomJid;
 	QString m_roomName;
 	QString m_nickName;
+	QString m_topic;
 
 public:
 	CRoomConfigPacket( QObject *parent = 0 );
@@ -49,6 +50,7 @@ public:
 	QString roomJid() const  { return m_roomJid; }
 	QString roomName() const { return m_roomName; }
 	QString nickName() const { return m_nickName; }
+	QString topic() const    { return m_topic; }
 
 	void pack( QByteArray &where ) const;
 	bool unpack( QByteArray &from );

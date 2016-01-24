@@ -64,7 +64,7 @@ public:
 	CScriptRunnerBase( const QString &handle, const QString &name, int fd, QObject *parent = 0 );
 	~CScriptRunnerBase();
 
-	virtual bool setupScript() { return true; }
+	virtual bool setupScript() = 0;
 
 	void sendMessage( const QString &to, const QString &body, const QString &subject = "", bool fixedFont = false );
 

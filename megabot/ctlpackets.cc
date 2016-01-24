@@ -89,6 +89,7 @@ CRoomConfigPacket::CRoomConfigPacket( CXMPPRoom *room, QObject *parent ) : CBase
 	m_roomJid  = room->bareJid();
 	m_roomName = room->roomName();
 	m_nickName = room->nickName();
+	m_topic    = room->topic();
 }
 
 void CRoomConfigPacket::pack( QByteArray &where ) const
@@ -98,6 +99,7 @@ void CRoomConfigPacket::pack( QByteArray &where ) const
 	pack_string( data, m_roomJid );
 	pack_string( data, m_roomName );
 	pack_string( data, m_nickName );
+	pack_string( data, m_topic );
 
 	constructPacket( where, data );
 }
@@ -111,6 +113,7 @@ bool CRoomConfigPacket::unpack( QByteArray &from )
 	if ( !unpack_string( data, p, m_roomJid ) ) return false;
 	if ( !unpack_string( data, p, m_roomName ) ) return false;
 	if ( !unpack_string( data, p, m_nickName ) ) return false;
+	if ( !unpack_string( data, p, m_topic ) ) return false;
 
 	return true;
 }

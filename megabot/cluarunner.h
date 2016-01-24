@@ -38,9 +38,6 @@ public:
 	~CLuaRunner();
 
 	virtual bool setupScript();
-
-public slots:
-	QString logHandle() { return m_handle; }
 };
 
 #endif // __CLUARUNNER_H_INCLUDED__

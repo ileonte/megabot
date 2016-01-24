@@ -55,7 +55,10 @@ void CScriptRunnerBase::socketReadyRead()
 			}
 			case CBaseControlPacket::RoomPresence: {
 				CRoomPresencePacket pkt;
-				if ( !pkt.unpack( m_sockData ) ) return;
+				if ( !pkt.unpack( m_sockData ) ) {
+					LOG( fmt( "Failed to unpack romm presence packet" ) );
+					return;
+				}
 				onRoomPresencePacket( pkt );
 				break;
 			}
