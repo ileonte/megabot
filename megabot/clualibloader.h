@@ -87,6 +87,7 @@ public:
 	pfn_pushstring lua_pushstring_;
 	void lua_pushstring(lua_State *L, const char *s) const { lua_pushstring_(L, s); }
 	void lua_pushstring(lua_State *L, const QString &s) const { lua_pushstring_(L, s.toUtf8().data()); }
+
 	typedef void (*pfn_pushnumber)(lua_State *L, lua_Number n);
 	pfn_pushnumber lua_pushnumber;
 
@@ -102,6 +103,7 @@ public:
 	typedef const char *(*pfn_tolstring)(lua_State *L, int index, size_t *len);
 	pfn_tolstring lua_tolstring;
 	const char *lua_tostring(lua_State *L, int index) const { return lua_tolstring(L, index, 0); }
+
 	typedef int (*pfn_toboolean)(lua_State *L, int index);
 	pfn_toboolean lua_toboolean;
 
@@ -114,6 +116,7 @@ public:
 	typedef const char *(*pfn_L_checklstring)(lua_State *L, int arg, size_t *l);
 	pfn_L_checklstring luaL_checklstring;
 	const char *luaL_checkstring(lua_State *L, int arg) const { return luaL_checklstring(L, arg, 0); }
+
 	typedef int (*pfn_type)(lua_State *L, int index);
 	pfn_type lua_type;
 
@@ -156,6 +159,7 @@ public:
 	pfn_L_loadfile luaL_loadfile_;
 	int luaL_loadfile(lua_State *L, const char *filename) const { return luaL_loadfile_(L, filename); }
 	int luaL_loadfile(lua_State *L, const QString &filename) const { return luaL_loadfile_(L, filename.toUtf8().data()); }
+
 	typedef void (*pfn_L_openlibs)(lua_State *L);
 	pfn_L_openlibs luaL_openlibs;
 
