@@ -11,8 +11,6 @@ CMegaBot::CMegaBot(int &argc, char **argv) : QCoreApplication(argc, argv)
 	m_mode = Unknown;
 	m_forked = false;
 	m_runner = NULL;
-
-	qRegisterMetaType<QAbstractSocket::SocketState>();
 }
 
 CMegaBot::~CMegaBot()
