@@ -22,29 +22,28 @@ void mb_trace(QObject *obj, const QString &message)
 	CXMPPRoom *room;
 	CScriptController *sctl;
 	CScriptRunnerBase *srun;
+	CMegaBot *bot;
 	QString channelName;
-	QMetaMethod method;
-	int idx = obj->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("logHandle()").data());
 
-	if (idx != -1) {
-		method = obj->metaObject()->method(idx);
-		method.invoke(obj, Q_RETURN_ARG(QString, handle));
-	}
-
-	if ((srv = qobject_cast<CXMPPServer *>(obj)) != NULL) {
+	if ((bot = qobject_cast<CMegaBot *>(obj)) != NULL) {
+		channelName = "system";
+		handle = bot->logHandle();
+	} else if ((srv = qobject_cast<CXMPPServer *>(obj)) != NULL) {
 		channelName = "server";
+		handle = srv->logHandle();
 	} else if ((room = qobject_cast<CXMPPRoom *>(obj)) != NULL) {
 		channelName = "room";
+		handle = room->logHandle();
 	} else if ((sctl = qobject_cast<CScriptController *>(obj)) != NULL) {
 		channelName = "master";
+		handle = sctl->logHandle();
 	} else if ((srun = qobject_cast<CScriptRunnerBase *>(obj)) != NULL) {
 		channelName = "script";
+		handle = srun->logHandle();
 	} else {
 		channelName = "system";
-	}
-
-	if (handle.isEmpty())
 		handle = fmt("NOHANDLE( %1 )").arg(obj->metaObject()->className());
+	}
 
 	QString msg = fmt("%1 %2 %3 %4 : %5").arg(__t()).arg(getpid(), 5).arg(channelName, 6).arg(handle).arg(message);
 	if (botInstance->forked()) {
