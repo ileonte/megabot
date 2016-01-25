@@ -42,7 +42,7 @@ public:
 	typedef void (*pfn_close)(lua_State *L);
 	pfn_close lua_close;
 
-	typedef lua_Number (*pfn_version)(lua_State *L);
+	typedef lua_Number *(*pfn_version)(lua_State *L);
 	pfn_version lua_version;
 
 	typedef int (*pfn_pcall)(lua_State *L, int nargs, int nret, int msgh);
@@ -54,7 +54,7 @@ public:
 	int lua_pcall(lua_State *L, int nargs, int nret, int msgh) const {
 		lua_Number v = 5.1;
 		if (lua_version)
-			v = lua_version(0);
+			v = *lua_version(0);
 
 		if (v <= 5.1)
 			return lua_pcall_(L, nargs, nret, msgh);
