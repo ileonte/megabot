@@ -1,0 +1,4 @@
+#!/bin/sh
+
+DIR=`dirname $0`
+clang-format -style=file -i "$DIR/megabot"/*.cc "$DIR/megabot"/*.h
