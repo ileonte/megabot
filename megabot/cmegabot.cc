@@ -244,8 +244,6 @@ bool CMegaBot::initScriptRunner()
 
 	QVariant scriptConfig =
 	    m_config["servers"].toMap()[serverHandle].toMap()["rooms"].toMap()[room].toMap()["scripts"].toMap().value(script);
-	qDebug() << scriptConfig;
-
 	if (!createRunner(handle, script, fd, scriptConfig.toMap()))
 		return false;
 	m_runner->setInitialConfig(server, room, nickname);
