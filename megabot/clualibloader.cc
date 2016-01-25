@@ -8,7 +8,10 @@ CLuaLibLoader::CLuaLibLoader(const QString &libPath, QObject *parent) : QObject(
 	m_lib = new QLibrary(libPath, this);
 	if (m_lib->load()) {
 		lua_close = (pfn_close)m_lib->resolve("lua_close");
-		lua_pcall = (pfn_pcall)m_lib->resolve("lua_pcall");
+		lua_version = (pfn_version)m_lib->resolve("lua_version");
+		lua_pcall_ = (pfn_pcall)m_lib->resolve("lua_pcall");
+		lua_pcallk52_ = (pfn_pcallk52)m_lib->resolve("lua_pcallk");
+		lua_pcallk53_ = (pfn_pcallk53)m_lib->resolve("lua_pcallk");
 		lua_setfield = (pfn_setfield)m_lib->resolve("lua_setfield");
 		lua_getfield = (pfn_getfield)m_lib->resolve("lua_getfield");
 		lua_isfunction_ = (pfn_isfunction)m_lib->resolve("lua_isfunction");

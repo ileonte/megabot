@@ -5,6 +5,8 @@
 #include <QLibrary>
 #include <QString>
 
+#include <stdint.h>
+
 #define LUA_TNONE (-1)
 #define LUA_TNIL 0
 #define LUA_TBOOLEAN 1
@@ -35,12 +37,31 @@ public:
 	 */
 	typedef double lua_Number;
 	typedef ptrdiff_t lua_Integer;
+	typedef intptr_t lua_KContext;
 
 	typedef void (*pfn_close)(lua_State *L);
 	pfn_close lua_close;
 
+	typedef lua_Number (*pfn_version)(lua_State *L);
+	pfn_version lua_version;
+
 	typedef int (*pfn_pcall)(lua_State *L, int nargs, int nret, int msgh);
-	pfn_pcall lua_pcall;
+	pfn_pcall lua_pcall_;
+	typedef int (*pfn_pcallk52)(lua_State *L, int nargs, int nret, int msgh, int ctx, void *k);
+	pfn_pcallk52 lua_pcallk52_;
+	typedef int (*pfn_pcallk53)(lua_State *L, int nargs, int nret, int msgh, lua_KContext ctx, void *k);
+	pfn_pcallk53 lua_pcallk53_;
+	int lua_pcall(lua_State *L, int nargs, int nret, int msgh) const {
+		lua_Number v = 5.1;
+		if (lua_version)
+			v = lua_version(0);
+
+		if (v <= 5.1)
+			return lua_pcall_(L, nargs, nret, msgh);
+		if (v >= 5.2 && v < 5.3)
+			return lua_pcallk52_(L, nargs, nret, msgh, 0, 0);
+		return lua_pcallk53_(L, nargs, nret, msgh, 0, 0);
+	}
 
 	typedef int (*pfn_isfunction)(lua_State *L, int index);
 	pfn_isfunction lua_isfunction_;
