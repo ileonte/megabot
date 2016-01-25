@@ -51,7 +51,8 @@ public:
 	pfn_pcallk52 lua_pcallk52_;
 	typedef int (*pfn_pcallk53)(lua_State *L, int nargs, int nret, int msgh, lua_KContext ctx, void *k);
 	pfn_pcallk53 lua_pcallk53_;
-	int lua_pcall(lua_State *L, int nargs, int nret, int msgh) const {
+	int lua_pcall(lua_State *L, int nargs, int nret, int msgh) const
+	{
 		lua_Number v = 5.1;
 		if (lua_version)
 			v = *lua_version(0);
@@ -132,7 +133,8 @@ public:
 	pfn_tointeger lua_tointeger_;
 	typedef lua_Integer (*pfn_tointegerx)(lua_State *L, int index, int *isnum);
 	pfn_tointegerx lua_tointegerx;
-	lua_Integer lua_tointeger(lua_State *L, int index) const {
+	lua_Integer lua_tointeger(lua_State *L, int index) const
+	{
 		if (lua_tointegerx)
 			return lua_tointegerx(L, index, 0);
 		return lua_tointeger_(L, index);
@@ -142,7 +144,8 @@ public:
 	pfn_tonumber lua_tonumber_;
 	typedef lua_Number (*pfn_tonumberx)(lua_State *L, int idx, int *isnum);
 	pfn_tonumberx lua_tonumberx;
-	lua_Number lua_tonumber(lua_State *L, int idx) const {
+	lua_Number lua_tonumber(lua_State *L, int idx) const
+	{
 		if (lua_tonumberx)
 			return lua_tonumberx(L, idx, 0);
 		return lua_tonumber_(L, idx);
