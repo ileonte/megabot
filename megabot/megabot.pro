@@ -9,7 +9,7 @@ TARGET = $$MB_BUILD_DIR/bin/megabot.bin
 TEMPLATE = app
 
 INCLUDEPATH += ../libs/qxmpp/src/base ../libs/qxmpp/src/client ../libs/lua ../libs/qt-json
-LIBS += ../libs/qxmpp/src/libqxmpp.a -L$$MB_BASE_DIR/build/lib -lm -llua -ldl -lpthread
+LIBS += ../libs/qxmpp/src/libqxmpp.a -lm -ldl -lpthread
 QMAKE_LFLAGS += -Wl,-rpath,$$MB_BASE_DIR/build/lib
 
 SOURCES += main.cc \
