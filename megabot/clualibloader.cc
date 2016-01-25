@@ -36,6 +36,7 @@ CLuaLibLoader::CLuaLibLoader(const QString &libPath, QObject *parent) : QObject(
 		lua_isstring = (pfn_isstring)m_lib->resolve("lua_isstring");
 		lua_isnumber = (pfn_isnumber)m_lib->resolve("lua_isnumber");
 		luaL_loadfile_ = (pfn_L_loadfile)m_lib->resolve("luaL_loadfile");
+		luaL_loadfilex_ = (pfn_L_loadfilex)m_lib->resolve("luaL_loadfilex");
 		luaL_openlibs = (pfn_L_openlibs)m_lib->resolve("luaL_openlibs");
 		lua_pushcclosure = (pfn_pushcclosure)m_lib->resolve("lua_pushcclosure");
 		lua_pushcfunction_ = (pfn_pushcfunction)m_lib->resolve("lua_pushcfunction");

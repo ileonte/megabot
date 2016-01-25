@@ -157,8 +157,15 @@ public:
 
 	typedef int (*pfn_L_loadfile)(lua_State *L, const char *filename);
 	pfn_L_loadfile luaL_loadfile_;
-	int luaL_loadfile(lua_State *L, const char *filename) const { return luaL_loadfile_(L, filename); }
-	int luaL_loadfile(lua_State *L, const QString &filename) const { return luaL_loadfile_(L, filename.toUtf8().data()); }
+	typedef int (*pfn_L_loadfilex)(lua_State *L, const char *filename, const char *mode);
+	pfn_L_loadfilex luaL_loadfilex_;
+	int luaL_loadfile(lua_State *L, const char *filename) const
+	{
+		if (luaL_loadfile_)
+			return luaL_loadfile_(L, filename);
+		return luaL_loadfilex_(L, filename, 0);
+	}
+	int luaL_loadfile(lua_State *L, const QString &filename) const { return luaL_loadfile(L, filename.toUtf8().data()); }
 
 	typedef void (*pfn_L_openlibs)(lua_State *L);
 	pfn_L_openlibs luaL_openlibs;
