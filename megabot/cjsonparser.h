@@ -55,6 +55,7 @@ private:
 
 public:
 	explicit CJSONParser( QObject *parent = 0 );
+	virtual ~CJSONParser() {}
 
 	void clear();
 	ParserError error() const { return m_error; }

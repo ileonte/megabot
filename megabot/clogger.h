@@ -6,9 +6,9 @@
 #include <QVector>
 #include <QString>
 
-void mb_trace( QObject *obj, int line, const QString &file, const QString &message );
+void mb_trace(QObject *obj, const QString &message);
 
-#define LOG( __s ) ({ mb_trace( this, __LINE__, __FILE__, __s ); 0; })
-#define OLOG( __o, __s ) ({ mb_trace( __o, __LINE__, __FILE__, __s ); 0; })
+#define LOG( __s ) ({ mb_trace(this, __s); })
+#define OLOG( __o, __s ) ({ mb_trace(__o, __s); })
 
 #endif // CLOGGER_H

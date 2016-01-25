@@ -10,6 +10,7 @@
 #include <QUrl>
 #include <QDateTime>
 #include <QTimer>
+#include <QVariantMap>
 
 #include "main.h"
 
@@ -37,6 +38,7 @@ protected:
 	QString       m_roomName;
 	QString       m_server;
 	QStringList   m_participants;
+	QVariantMap   m_extraConfig;
 
 	QNetworkAccessManager *m_netMan;
 
@@ -61,8 +63,8 @@ protected:
 	virtual void onTimerTimeout( const QString &name );
 
 public:
-	CScriptRunnerBase( const QString &handle, const QString &name, int fd, QObject *parent = 0 );
-	~CScriptRunnerBase();
+	CScriptRunnerBase(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig, QObject *parent = 0);
+	virtual ~CScriptRunnerBase();
 
 	virtual bool setupScript() = 0;
 
@@ -86,8 +88,5 @@ public:
 public slots:
 	QString logHandle() { return m_handle; }
 };
-
-extern CScriptRunnerBase *global_runner;
-CScriptRunnerBase *createRunner( const QString &handle, const QString &name, int fd );
 
 #endif // __CSCRIPTRUNNER_H_INCLUDED__

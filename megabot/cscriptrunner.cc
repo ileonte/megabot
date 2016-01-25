@@ -2,9 +2,8 @@
 #include "cluarunner.h"
 #include "ctlpackets.h"
 
-CScriptRunnerBase *global_runner = NULL;
-
-CScriptRunnerBase::CScriptRunnerBase( const QString &handle, const QString &name, int fd, QObject *parent ) : QObject( parent )
+CScriptRunnerBase::CScriptRunnerBase(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig, QObject *parent)
+      : QObject(parent), m_extraConfig(extraConfig)
 {
 	m_networkRequestCount = 0;
 	m_timerCount = 0;
@@ -20,14 +19,10 @@ CScriptRunnerBase::CScriptRunnerBase( const QString &handle, const QString &name
 
 	connect( m_comm, SIGNAL( disconnected() ), this, SLOT( socketDisconnected() ) );
 	connect( m_comm, SIGNAL( readyRead() ), this, SLOT( socketReadyRead() ) );
-
-	global_runner = this;
 }
 
 CScriptRunnerBase::~CScriptRunnerBase()
 {
-	if ( m_comm ) delete m_comm;
-	if ( global_runner == this ) global_runner = NULL;
 }
 
 void CScriptRunnerBase::socketReadyRead()
@@ -191,18 +186,4 @@ void CScriptRunnerBase::createTimer( const QString &name, int timeout )
 		m_timerCount += 1;
 		timer->start();
 	}
-}
-
-CScriptRunnerBase *createRunner( const QString &handle, const QString &name, int fd )
-{
-	CScriptRunnerBase *r = NULL;
-	if ( name.endsWith( ".lua", Qt::CaseInsensitive ) ) r = new CLuaRunner( handle, name, fd );
-	else return NULL;
-
-	if ( !r->setupScript() ) {
-		delete r;
-		return NULL;
-	}
-
-	return r;
 }

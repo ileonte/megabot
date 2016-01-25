@@ -22,7 +22,8 @@ SOURCES += main.cc \
     cluarunner.cc \
     utils.cc \
     clogger.cc \
-    cjsonparser.cc
+    cjsonparser.cc \
+    clualibloader.cc
 
 HEADERS  += \
     main.h \
@@ -35,7 +36,8 @@ HEADERS  += \
     cscriptrunner.h \
     cluarunner.h \
     clogger.h \
-    cjsonparser.h
+    cjsonparser.h \
+    clualibloader.h
 
 OTHER_FILES +=
 

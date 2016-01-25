@@ -19,7 +19,8 @@ public:
 		ScriptMessage
 	};
 
-	CBaseControlPacket( QObject *parent = 0 ) : QObject( parent ) { }
+	CBaseControlPacket( QObject *parent = 0 ) : QObject( parent ) {}
+	virtual ~CBaseControlPacket() {}
 
 	ControlPatcketType type() const { return m_type; }
 
@@ -46,6 +47,7 @@ private:
 public:
 	CRoomConfigPacket( QObject *parent = 0 );
 	CRoomConfigPacket( CXMPPRoom *room, QObject *parent = 0 );
+	virtual ~CRoomConfigPacket() {}
 
 	QString roomJid() const  { return m_roomJid; }
 	QString roomName() const { return m_roomName; }
@@ -69,6 +71,7 @@ private:
 public:
 	CRoomMessagePacket( QObject *parent = 0 );
 	CRoomMessagePacket( const QXmppMessage &msg, QObject *parent = 0 );
+	virtual ~CRoomMessagePacket() {}
 
 	QString from() const { return m_from; }
 	QString body() const { return m_body; }
@@ -93,6 +96,7 @@ private:
 public:
 	CRoomPresencePacket( QObject *parent = 0 );
 	CRoomPresencePacket( const QXmppPresence &presence, QObject *parent = 0 );
+	virtual ~CRoomPresencePacket() {}
 
 	QXmppPresence::Type presenceType() const { return m_ptype; }
 	QString who() const { return m_who; }
@@ -117,6 +121,7 @@ private:
 public:
 	CScriptMessagePacket( QObject *parent = 0 );
 	CScriptMessagePacket( const QString &to, const QString &body, const QString &subject = "", bool fixedFont = false, QObject *parent = 0 );
+	virtual ~CScriptMessagePacket() {}
 
 	QString to() const { return m_to; }
 	QString body() const { return m_body; }

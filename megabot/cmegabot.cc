@@ -2,6 +2,7 @@
 #include "cxmpproom.h"
 #include "cmegabot.h"
 #include "cscriptrunner.h"
+#include "cluarunner.h"
 #include "cscriptcontroller.h"
 #include "cjsonparser.h"
 
@@ -12,15 +13,9 @@ CMegaBot::CMegaBot( int &argc, char **argv ) : QCoreApplication( argc, argv )
 	m_runner = NULL;
 }
 
-CMegaBot::~CMegaBot( void )
+CMegaBot::~CMegaBot()
 {
-	if ( m_mode == Master ) {
-		for ( int i = 0; i < m_servers.size(); i++ )
-			delete m_servers[i];
-		m_servers.clear();
-	} else {
-		delete m_runner;
-	}
+	m_servers.clear();
 }
 
 void CMegaBot::triggerKillSwitch()
@@ -75,6 +70,7 @@ bool CMegaBot::loadConfig()
 		m_config = p.value().toMap();
 
 		m_configPath = fi[i].absoluteFilePath();
+		LOG(fmt("Successfully loaded config from %1").arg(m_configPath));
 		return true;
 	}
 
@@ -82,15 +78,20 @@ bool CMegaBot::loadConfig()
 	return false;
 }
 
-bool CMegaBot::initMaster( bool dofork, const QString &basePath )
+void CMegaBot::initPaths(const QString &basePath)
 {
-	m_mode = Master;
-
 	if ( !basePath.isEmpty() ) m_basePath = basePath;
 	else m_basePath = "/opt/MegaBot";
 
 	m_scriptPath = fmt( "%1/share/scripts" ).arg( m_basePath );
 	m_logPath = fmt( "%1/var/log" ).arg( m_basePath );
+}
+
+bool CMegaBot::initMaster( bool dofork, const QString &basePath )
+{
+	m_mode = Master;
+
+	initPaths(basePath);
 
 	if ( !loadConfig() )
 		return false;
@@ -142,9 +143,7 @@ bool CMegaBot::initMaster( bool dofork, const QString &basePath )
 				continue;
 			}
 
-			foreach ( const QVariant &vScript, mRoom["scripts"].toList() ) {
-				QString script_name = vScript.toString();
-				if ( script_name.isEmpty() ) continue;
+			foreach ( const QString &script_name, mRoom["scripts"].toMap().keys() ) {
 				CScriptController *script = room->findScript( script_name );
 				if ( !script ) {
 					script = new CScriptController( room, script_name );
@@ -170,12 +169,29 @@ bool CMegaBot::initMaster( bool dofork, const QString &basePath )
 	return true;
 }
 
+bool CMegaBot::createRunner(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig)
+{
+	if (name.endsWith(".lua", Qt::CaseInsensitive))
+		m_runner = new CLuaRunner(handle, name, fd, extraConfig, this);
+	else
+		return false;
+
+	if ( !m_runner->setupScript() ) {
+		delete m_runner;
+		m_runner = 0;
+		return false;
+	}
+
+	return true;
+}
+
 bool CMegaBot::initScriptRunner()
 {
 	QMap<QString, QString> varMap;
 	QString error;
 	QString script;
 	QString server;
+	QString serverHandle;
 	QString handle;
 	QString room;
 	QString nickname;
@@ -185,6 +201,7 @@ bool CMegaBot::initScriptRunner()
 
 	varMap["MEGABOT_CONTROL_SOCKET"] = "";
 	varMap["MEGABOT_SERVER"]         = "";
+	varMap["MEGABOT_SERVER_HANDLE"]  = "";
 	varMap["MEGABOT_HANDLE"]         = "";
 	varMap["MEGABOT_ROOM"]           = "";
 	varMap["MEGABOT_NICKNAME"]       = "";
@@ -195,23 +212,32 @@ bool CMegaBot::initScriptRunner()
 		varMap[var] = CMegaBot::getEnv( var );
 		if ( varMap[var].isEmpty() ) error += " " + var;
 	}
-	if ( !error.isEmpty() ) return false;
+	if ( !error.isEmpty() ) {
+		qDebug() << fmt("Missing vars: %1").arg(error);
+		LOG(fmt("Missing vars: %1").arg(error));
+		return false;
+	}
 
 	bool ok = true;
 	int fd = varMap["MEGABOT_CONTROL_SOCKET"].toInt( &ok );
 	if ( !ok || ( ok && fd < 0 ) ) return false;
 
-	m_basePath   = varMap["MEGABOT_BASEPATH"];
-	m_scriptPath = fmt( "%1/share/scripts" ).arg( m_basePath );
-	m_logPath    = fmt( "%1/var/log" ).arg( m_basePath );
+	initPaths(varMap["MEGABOT_BASEPATH"]);
 
 	script       = varMap["MEGABOT_SCRIPT"];
 	server       = varMap["MEGABOT_SERVER"];
+	serverHandle = varMap["MEGABOT_SERVER_HANDLE"];
 	handle       = varMap["MEGABOT_HANDLE"];
 	room         = varMap["MEGABOT_ROOM"];
 	nickname     = varMap["MEGABOT_NICKNAME"];
 
-	if ( ( m_runner = createRunner( handle, script, fd ) ) == NULL ) return false;
+	if (!loadConfig())
+		return false;
+
+	QVariant scriptConfig = m_config["servers"].toMap()[serverHandle].toMap()["rooms"].toMap()[room].toMap()["scripts"].toMap().value(script);
+	qDebug() << scriptConfig;
+
+	if ( !createRunner( handle, script, fd, scriptConfig.toMap() ) ) return false;
 	m_runner->setInitialConfig( server, room, nickname );
 
 	return true;

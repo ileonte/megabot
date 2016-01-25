@@ -60,6 +60,9 @@ private:
 
 	QLocalServer         *m_killSwitch;
 
+	void initPaths(const QString &basePath);
+	bool createRunner(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig);
+
 private slots:
 	void newKillSwitchConnection();
 	void dataOnKillSwitchConnection();
@@ -68,7 +71,7 @@ private slots:
 
 public:
 	CMegaBot( int &argc, char **argv );
-	~CMegaBot( void );
+	virtual ~CMegaBot();
 
 	void closeAllSockets( int except );
 

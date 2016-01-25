@@ -90,7 +90,7 @@ int main( int argc, char **argv )
 
 	signal( SIGINT, SIGINT_handler );
 
-	if ( QString( argv[0] ).startsWith( MB_SCRIPT_RUNNER_NAME ) ) {
+	if ( getenv("MEGABOT_CONTROL_SOCKET") ) {
 		if ( !bot.initScriptRunner() ) return 1;
 	} else {
 		if ( !start && !stop ) {

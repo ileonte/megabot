@@ -13,10 +13,10 @@
 
 static inline QString __t()
 {
-	return QDateTime::currentDateTime().toString( "yyyy MMM dd hh:mm:ss" );
+	return QDateTime::currentDateTime().toString("yyyy MMM dd hh:mm:ss");
 }
 
-void mb_trace( QObject *obj, int line PNU, const QString &file PNU, const QString &message )
+void mb_trace(QObject *obj, const QString &message)
 {
 	QString            handle;
 	CXMPPServer       *srv;
@@ -34,8 +34,10 @@ void mb_trace( QObject *obj, int line PNU, const QString &file PNU, const QStrin
 
 	if ( ( srv = qobject_cast<CXMPPServer *>( obj ) ) != NULL ) {
 		channelName = "server";
-	} else if ( ( room = qobject_cast<CXMPPRoom *>( obj ) ) != NULL || ( sctl = qobject_cast<CScriptController *>( obj ) ) != NULL ) {
+	} else if ( ( room = qobject_cast<CXMPPRoom *>( obj ) ) != NULL ) {
 		channelName = "room";
+	} else if ( ( sctl = qobject_cast<CScriptController *>( obj ) ) != NULL ) {
+		channelName = "master";
 	} else if ( ( srun = qobject_cast<CScriptRunnerBase *>( obj ) ) != NULL ) {
 		channelName = "script";
 	} else {

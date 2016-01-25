@@ -38,7 +38,7 @@ private slots:
 
 public:
 	CXMPPServer( const QString &handle, QObject *parent = 0 );
-	~CXMPPServer( void );
+	virtual ~CXMPPServer( void );
 
 	bool isEmpty() const {
 		return ( m_host.isEmpty() ||

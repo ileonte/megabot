@@ -29,7 +29,7 @@ private slots:
 
 public:
 	CXMPPRoom( CXMPPServer *parent );
-	~CXMPPRoom();
+	virtual ~CXMPPRoom();
 
 	bool isEmpty() const {
 		return ( m_roomName.isEmpty() || m_nickName.isEmpty() );

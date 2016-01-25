@@ -36,6 +36,7 @@ private:
 	void closeSockets();
 
 	void sendPacket( const CBaseControlPacket &pkt );
+	void waitForChild();
 
 private slots:
 	void socketDisconnected();
@@ -43,7 +44,7 @@ private slots:
 
 public:
 	CScriptController( CXMPPRoom *parent, const QString &script );
-	~CScriptController();
+	virtual ~CScriptController();
 
 	bool autoRun() const { return m_autoRun; }
 	void setAutoRun( bool yesno ) { m_autoRun = yesno; }

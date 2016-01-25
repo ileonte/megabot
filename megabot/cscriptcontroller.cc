@@ -16,9 +16,25 @@ CScriptController::~CScriptController()
 {
 	if ( m_running && m_child > 0 ) {
 		m_comm->disconnectFromServer();
-		m_comm->deleteLater();
-		waitpid( m_child, NULL, 0 );
+		waitForChild();
 		closeSockets();
+	}
+}
+
+void CScriptController::waitForChild()
+{
+	int status;
+	LOG( fmt( "Waiting for child '%1' to terminate" ).arg( m_child ) );
+	waitpid( m_child, &status, 0 );
+	m_child = -1;
+
+	if (WIFEXITED(status)) {
+		LOG(fmt("Script has exited with code %1").arg(WEXITSTATUS(status)));
+	} else if (WIFSIGNALED(status)) {
+		int sig = WTERMSIG(status);
+		LOG(fmt("Script was terminated by signal %1 (%2)%3").arg(sig).arg(strsignal(sig)).arg(WCOREDUMP(status) ? ". Core dumped" : ""));
+	} else {
+		LOG(fmt("Script has terminated unexpectedly"));
 	}
 }
 
@@ -69,6 +85,7 @@ bool CScriptController::runScript()
 
 		setenv( "MEGABOT_CONTROL_SOCKET", fmt( "%1" ).arg( m_sockfds[1] ).toUtf8().data(),    1 );
 		setenv( "MEGABOT_SERVER",         m_room->server()->conferenceHost().toUtf8().data(), 1 );
+		setenv( "MEGABOT_SERVER_HANDLE",  m_room->server()->logHandle().toUtf8().data(),      1 );
 		setenv( "MEGABOT_HANDLE",         logHandle().toUtf8().data(),                        1 );
 		setenv( "MEGABOT_ROOM",           m_room->roomName().toUtf8().data(),                 1 );
 		setenv( "MEGABOT_NICKNAME",       m_room->nickName().toUtf8().data(),                 1 );
@@ -93,7 +110,6 @@ void CScriptController::stopScript()
 		if ( m_comm ) {
 			LOG( fmt( "Closing socket connection" ) );
 			m_comm->disconnectFromServer();
-			m_comm->deleteLater();
 			m_comm = NULL;
 			LOG( fmt( "DONE Closing socket connection" ) );
 		}
@@ -104,13 +120,9 @@ void CScriptController::socketDisconnected()
 {
 	m_sockData.clear();
 	closeSockets();
-	if ( m_child > 0 ) {
-		LOG( fmt( "Waiting for child '%1' to terminate" ).arg( m_child ) );
-		waitpid( m_child, NULL, 0 );
-		m_child = -1;
-	}
+	if ( m_child > 0 )
+		waitForChild();
 
-	LOG( fmt( "Script '%1' in room '%2' has stopped running" ).arg( m_script ).arg( m_room->bareJid() ) );
 	emit stopped( this );
 
 	m_running = false;
