@@ -15,7 +15,7 @@
 #include "main.h"
 
 #define MB_MAX_NETREQ_COUNT 10
-#define MB_MAX_TIMER_COUNT  10
+#define MB_MAX_TIMER_COUNT 10
 
 class CBaseControlPacket;
 class CRoomConfigPacket;
@@ -29,60 +29,61 @@ class CScriptRunnerBase : public QObject
 	Q_OBJECT
 
 protected:
-	QString       m_script;
-	QString       m_handle;
+	QString m_script;
+	QString m_handle;
 	QLocalSocket *m_comm;
-	QByteArray    m_sockData;
-	QString       m_roomJid;
-	QString       m_nickName;
-	QString       m_roomName;
-	QString       m_server;
-	QStringList   m_participants;
-	QVariantMap   m_extraConfig;
+	QByteArray m_sockData;
+	QString m_roomJid;
+	QString m_nickName;
+	QString m_roomName;
+	QString m_server;
+	QStringList m_participants;
+	QVariantMap m_extraConfig;
 
 	QNetworkAccessManager *m_netMan;
 
-	int           m_networkRequestCount;
-	int           m_timerCount;
+	int m_networkRequestCount;
+	int m_timerCount;
 
 private slots:
 	void socketDisconnected();
 	void socketReadyRead();
 
-	void networkRequestFinished( QNetworkReply *reply );
+	void networkRequestFinished(QNetworkReply *reply);
 
 	void timerTimeout();
 
 protected:
-	virtual void onRoomConfigPacket( const CRoomConfigPacket &pkt );
-	virtual void onRoomMessagePacket( const CRoomMessagePacket &pkt );
-	virtual void onRoomPresencePacket( const CRoomPresencePacket &pkt );
+	virtual void onRoomConfigPacket(const CRoomConfigPacket &pkt);
+	virtual void onRoomMessagePacket(const CRoomMessagePacket &pkt);
+	virtual void onRoomPresencePacket(const CRoomPresencePacket &pkt);
 
-	virtual void onNetworkRequestFinished( bool allOk, const QString &name, const QString &url, const QByteArray &data );
+	virtual void onNetworkRequestFinished(bool allOk, const QString &name, const QString &url, const QByteArray &data);
 
-	virtual void onTimerTimeout( const QString &name );
+	virtual void onTimerTimeout(const QString &name);
 
 public:
-	CScriptRunnerBase(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig, QObject *parent = 0);
+	CScriptRunnerBase(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig,
+	                  QObject *parent = 0);
 	virtual ~CScriptRunnerBase();
 
 	virtual bool setupScript() = 0;
 
-	void sendMessage( const QString &to, const QString &body, const QString &subject = "", bool fixedFont = false );
+	void sendMessage(const QString &to, const QString &body, const QString &subject = "", bool fixedFont = false);
 
 	QString roomJid() const { return m_roomJid; }
 	QString roomName() const { return m_roomName; }
 	QString nickName() const { return m_nickName; }
 	const QStringList &participants() const { return m_participants; }
+	void networkRequest(const QString &name, const QString &url);
+	void createTimer(const QString &name, int timeout);
 
-	void networkRequest( const QString &name, const QString &url );
-	void createTimer( const QString &name, int timeout );
-
-	void setInitialConfig( const QString &server, const QString &room, const QString &nickname ) {
-		m_server   = server;
+	void setInitialConfig(const QString &server, const QString &room, const QString &nickname)
+	{
+		m_server = server;
 		m_roomName = room;
 		m_nickName = nickname;
-		m_roomJid  = fmt( "%1@%2" ).arg( room ).arg( server );
+		m_roomJid = fmt("%1@%2").arg(room).arg(server);
 	}
 
 public slots:

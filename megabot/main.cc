@@ -9,46 +9,46 @@
 #include <stdio.h>
 #include <getopt.h>
 
-static void SIGINT_handler( int )
+static void SIGINT_handler(int)
 {
-	if ( botInstance ) botInstance->quit();
+	if (botInstance)
+		botInstance->quit();
 }
 
 static void print_usage()
 {
-	printf( "Usage:\n" );
-	printf( "  megabot <options>\n" );
-	printf( "\n" );
-	printf( "Options:\n" );
-	printf( "  -s, --start         - start the bot\n" );
-	printf( "  -d, --no-daemon     - do NOT detach from the console\n" );
-	printf( "  -k, --stop          - stop running bot instance\n");
-	printf( "  -b <path>           - set the base path to 'path'\n" );
-	printf( "    --basepath <path>\n" );
+	printf("Usage:\n");
+	printf("  megabot <options>\n");
+	printf("\n");
+	printf("Options:\n");
+	printf("  -s, --start         - start the bot\n");
+	printf("  -d, --no-daemon     - do NOT detach from the console\n");
+	printf("  -k, --stop          - stop running bot instance\n");
+	printf("  -b <path>           - set the base path to 'path'\n");
+	printf("    --basepath <path>\n");
 }
 
-int main( int argc, char **argv )
+int main(int argc, char **argv)
 {
-	char *args[] = { argv[0], NULL };
-	int   acnt   = 1;
-	CMegaBot bot( acnt, args );
+	char *args[] = {argv[0], NULL};
+	int acnt = 1;
+	CMegaBot bot(acnt, args);
 
-	struct option opts[] = {
-		{ "start",      no_argument,       NULL, 's' },
-		{ "stop",       no_argument,       NULL, 'k' },
-		{ "no-daemon",  no_argument,       NULL, 'd' },
-		{ "basepath",   required_argument, NULL, 'b' }
-	};
+	struct option opts[] = {{"start", no_argument, NULL, 's'},
+	                        {"stop", no_argument, NULL, 'k'},
+	                        {"no-daemon", no_argument, NULL, 'd'},
+	                        {"basepath", required_argument, NULL, 'b'}};
 	QString optstr = "+";
 	bool start = false, stop = false, fork = true;
 	QString basepath;
 	int opt;
 
-	for ( unsigned i = 0; i < sizeof( opts ) / sizeof( opts[0] ); i++ ) {
-		if ( !opts[i].val ) continue;
+	for (unsigned i = 0; i < sizeof(opts) / sizeof(opts[0]); i++) {
+		if (!opts[i].val)
+			continue;
 
-		QString s( QChar( ( char )opts[i].val ) );
-		switch ( opts[i].has_arg ) {
+		QString s(QChar((char)opts[i].val));
+		switch (opts[i].has_arg) {
 			case required_argument: {
 				s += ":";
 				break;
@@ -57,14 +57,15 @@ int main( int argc, char **argv )
 				s += "::";
 				break;
 			}
-			default: break;
+			default:
+				break;
 		}
 
 		optstr += s;
 	}
 
-	while ( ( opt = getopt_long( argc, argv, optstr.toUtf8().data(), opts, NULL ) ) != -1 ) {
-		switch ( opt ) {
+	while ((opt = getopt_long(argc, argv, optstr.toUtf8().data(), opts, NULL)) != -1) {
+		switch (opt) {
 			case 's': {
 				start = true;
 				break;
@@ -78,7 +79,7 @@ int main( int argc, char **argv )
 				break;
 			}
 			case 'b': {
-				basepath = QString( optarg );
+				basepath = QString(optarg);
 				break;
 			}
 			default: {
@@ -88,22 +89,24 @@ int main( int argc, char **argv )
 		}
 	}
 
-	signal( SIGINT, SIGINT_handler );
+	signal(SIGINT, SIGINT_handler);
 
-	if ( getenv("MEGABOT_CONTROL_SOCKET") ) {
-		if ( !bot.initScriptRunner() ) return 1;
+	if (getenv("MEGABOT_CONTROL_SOCKET")) {
+		if (!bot.initScriptRunner())
+			return 1;
 	} else {
-		if ( !start && !stop ) {
+		if (!start && !stop) {
 			print_usage();
 			return 1;
 		}
 
-		if ( stop ) {
+		if (stop) {
 			bot.triggerKillSwitch();
 			return 0;
 		}
 
-		if ( !bot.initMaster( fork, basepath ) ) return 1;
+		if (!bot.initMaster(fork, basepath))
+			return 1;
 	}
 
 	return bot.exec();

@@ -1,4 +1,9 @@
 ﻿---
+AccessModifierOffset: '-6'
+AllowShortFunctionsOnASingleLine: Inline
+AlwaysBreakTemplateDeclarations: 'true'
+BreakBeforeBraces: Linux
+ColumnLimit: '128'
 IndentCaseLabels: 'true'
 IndentWidth: '6'
 KeepEmptyLinesAtTheStartOfBlocks: 'false'

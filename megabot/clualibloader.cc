@@ -3,8 +3,7 @@
 
 #include <QDebug>
 
-CLuaLibLoader::CLuaLibLoader(const QString &libPath, QObject *parent)
-      : QObject(parent), m_valid(false)
+CLuaLibLoader::CLuaLibLoader(const QString &libPath, QObject *parent) : QObject(parent), m_valid(false)
 {
 	m_lib = new QLibrary(libPath, this);
 	if (m_lib->load()) {
