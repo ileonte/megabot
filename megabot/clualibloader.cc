@@ -25,8 +25,10 @@ CLuaLibLoader::CLuaLibLoader(const QString &libPath, QObject *parent) : QObject(
 		lua_gettop = (pfn_gettop)m_lib->resolve("lua_gettop");
 		lua_tolstring = (pfn_tolstring)m_lib->resolve("lua_tolstring");
 		lua_toboolean = (pfn_toboolean)m_lib->resolve("lua_toboolean");
-		lua_tointeger = (pfn_tointeger)m_lib->resolve("lua_tointeger");
-		lua_tonumber = (pfn_tonumber)m_lib->resolve("lua_tonumber");
+		lua_tointeger_ = (pfn_tointeger)m_lib->resolve("lua_tointeger");
+		lua_tointegerx = (pfn_tointegerx)m_lib->resolve("lua_tointegerx");
+		lua_tonumber_ = (pfn_tonumber)m_lib->resolve("lua_tonumber");
+		lua_tonumberx = (pfn_tonumberx)m_lib->resolve("lua_tonumberx");
 		luaL_checklstring = (pfn_L_checklstring)m_lib->resolve("luaL_checklstring");
 		lua_type = (pfn_type)m_lib->resolve("lua_type");
 		lua_pushnil = (pfn_pushnil)m_lib->resolve("lua_pushnil");

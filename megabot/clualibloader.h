@@ -129,10 +129,24 @@ public:
 	pfn_toboolean lua_toboolean;
 
 	typedef lua_Integer (*pfn_tointeger)(lua_State *L, int index);
-	pfn_tointeger lua_tointeger;
+	pfn_tointeger lua_tointeger_;
+	typedef lua_Integer (*pfn_tointegerx)(lua_State *L, int index, int *isnum);
+	pfn_tointegerx lua_tointegerx;
+	lua_Integer lua_tointeger(lua_State *L, int index) const {
+		if (lua_tointegerx)
+			return lua_tointegerx(L, index, 0);
+		return lua_tointeger_(L, index);
+	}
 
 	typedef lua_Number (*pfn_tonumber)(lua_State *L, int idx);
-	pfn_tonumber lua_tonumber;
+	pfn_tonumber lua_tonumber_;
+	typedef lua_Number (*pfn_tonumberx)(lua_State *L, int idx, int *isnum);
+	pfn_tonumberx lua_tonumberx;
+	lua_Number lua_tonumber(lua_State *L, int idx) const {
+		if (lua_tonumberx)
+			return lua_tonumberx(L, idx, 0);
+		return lua_tonumber_(L, idx);
+	}
 
 	typedef const char *(*pfn_L_checklstring)(lua_State *L, int arg, size_t *l);
 	pfn_L_checklstring luaL_checklstring;
