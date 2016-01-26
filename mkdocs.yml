@@ -1,0 +1,5 @@
+site_name: MegaBot Documentation
+repo_url: https://github.com/ileonte/megabot
+pages:
+    - 'Introduction': 'index.md'
+    - 'Building and installing': 'build.md'

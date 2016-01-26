@@ -1,14 +1,16 @@
-# Building and "installing"
+## Building
 
 You will need either Qt4 (>= 4.8) or Qt5 (>= 5.2) to build MegaBot (there are no other
 external build dependencies):
 
-```
+```sh
 git clone https://github.com/ileonte/megabot.git
 cd megabot
 qmake
 make
 ```
+
+## Installing
 
 "Installing" the bot consists of creating a base directory (hence-forth refered to as `$PREFIX`)
 with a fixed structure of subdirectories. The results of the compilation are placed inside the 
@@ -35,7 +37,7 @@ directory logging will be effectivelly disabled.
 Here is an example of a fully-functional `$PREFIX` directory (subdirectories marked with `(*)` are created
 by the build process and can be copied as-is from the `build` directory):
 
-```
+```sh
 ├── bin (*)
 │   └── megabot.bin
 ├── etc
