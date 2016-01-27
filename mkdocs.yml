@@ -5,3 +5,4 @@ pages:
     - 'Building and installing': 'build.md'
     - 'Configuration': 'config.md'
     - 'Scripting': 'scripting.md'
+theme: mkdocs
