@@ -2,9 +2,11 @@
 #include "cluarunner.h"
 #include "ctlpackets.h"
 
+#include <QHostAddress>
+
 CScriptRunnerBase::CScriptRunnerBase(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig,
                                      QObject *parent)
-    : QObject(parent), m_extraConfig(extraConfig)
+    : QObject(parent), m_allowListen(false), m_extraConfig(extraConfig)
 {
 	m_networkRequestCount = 0;
 	m_timerCount = 0;
@@ -16,6 +18,10 @@ CScriptRunnerBase::CScriptRunnerBase(const QString &handle, const QString &name,
 		LOG(fmt("Warning: FAILED to create QLocalSocket on top of fd %1, "
 		        "stuff will break !")
 		        .arg(fd));
+
+	QVariant vv = m_extraConfig.value("allowLocalServers");
+	if (vv.isValid() && vv.type() == QVariant::Bool)
+		m_allowListen = vv.toBool();
 
 	m_netMan = new QNetworkAccessManager(this);
 	connect(m_netMan, SIGNAL(finished(QNetworkReply *)), this, SLOT(networkRequestFinished(QNetworkReply *)));
@@ -111,6 +117,7 @@ void CScriptRunnerBase::timerTimeout()
 void CScriptRunnerBase::onNetworkRequestFinished(bool, const QString &, const QString &, const QByteArray &)
 {
 }
+
 void CScriptRunnerBase::onRoomConfigPacket(const CRoomConfigPacket &pkt)
 {
 	m_roomJid = pkt.roomJid();
@@ -192,4 +199,151 @@ void CScriptRunnerBase::createTimer(const QString &name, int timeout)
 		m_timerCount += 1;
 		timer->start();
 	}
+}
+
+void CScriptRunnerBase::handleTcpConnectionData()
+{
+	QTcpSocket *client = qobject_cast<QTcpSocket *>(sender());
+	if (!client)
+		return;
+	QTcpServer *srv = qobject_cast<QTcpServer *>(client->parent());
+	if (!srv)
+		return;
+
+	while (!client->atEnd()) {
+		onTcpConnectionData(srv, client, client->read(65535));
+	}
+}
+
+void CScriptRunnerBase::handleTcpConnectionClose()
+{
+	QTcpSocket *client = qobject_cast<QTcpSocket *>(sender());
+	if (!client)
+		return;
+	QTcpServer *srv = qobject_cast<QTcpServer *>(client->parent());
+	if (!srv)
+		return;
+
+	onTcpConnectionClosed(srv, client);
+}
+
+void CScriptRunnerBase::handleNewTcpConnection()
+{
+	QTcpServer *srv = qobject_cast<QTcpServer *>(sender());
+	while (srv->hasPendingConnections()) {
+		QTcpSocket *sock = srv->nextPendingConnection();
+		QString sockName;
+#if QT_VERSION < 0x040700
+		sockName = QString("%1-%2").arg(srv->objectName()).arg(QDateTime::currentDateTime().toTime_t());
+#else
+		sockName = QString("%1-%21").arg(srv->objectName()).arg(QDateTime::currentMSecsSinceEpoch());
+#endif
+		sock->setObjectName(sockName);
+
+		if (!onNewTcpConnection(srv, sock)) {
+			sock->close();
+			sock->deleteLater();
+			continue;
+		}
+
+		connect(sock, SIGNAL(readyRead()), this, SLOT(handleTcpConnectionData()));
+		connect(sock, SIGNAL(disconnected()), this, SLOT(handleTcpConnectionClose()));
+	}
+}
+
+void CScriptRunnerBase::localServerCreate(const QString &name, quint16 port, QTcpServer **server, QString &error)
+{
+	*server = 0;
+	if (!m_allowListen) {
+		error = "Creating listen servers is not allowed";
+		return;
+	}
+	if (name.isEmpty()) {
+		error = "You failed to specify a name for the server";
+		return;
+	}
+	if (findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly)) {
+		error = "A server with that name already exists";
+		return;
+	}
+
+	QTcpServer *srv = new QTcpServer(this);
+	srv->setObjectName(name);
+	if (!srv->listen(QHostAddress::LocalHost, port)) {
+		error = srv->errorString();
+		srv->deleteLater();
+		return;
+	}
+
+	connect(srv, SIGNAL(newConnection()), this, SLOT(handleNewTcpConnection()));
+	*server = srv;
+}
+
+void CScriptRunnerBase::localServerDestroy(const QString &name)
+{
+	QTcpServer *srv = findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly);
+	if (srv) {
+		srv->close();
+		srv->deleteLater();
+	}
+}
+
+void CScriptRunnerBase::localServerDestroyClient(const QString &name, const QString &clientName)
+{
+	QTcpServer *srv = findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly);
+	if (!srv)
+		return;
+	QTcpSocket *cli = srv->findChild<QTcpSocket *>(clientName, Qt::FindDirectChildrenOnly);
+	if (!cli)
+		return;
+	cli->close();
+	cli->deleteLater();
+}
+
+void CScriptRunnerBase::localClientDestroy(const QString &name)
+{
+	QTcpSocket *cli = findChild<QTcpSocket *>(name, Qt::FindChildrenRecursively);
+	if (cli) {
+		cli->close();
+		cli->deleteLater();
+	}
+}
+
+qint64 CScriptRunnerBase::localServerSend(const QString &name, const QString &clientName, const char *data, qint64 size, QString &error)
+{
+	QTcpServer *srv = findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly);
+	if (!srv) {
+		error = "No such server found";
+		return -1;
+	}
+	QTcpSocket *cli = srv->findChild<QTcpSocket *>(clientName, Qt::FindDirectChildrenOnly);
+	if (!cli) {
+		error = "No such client found";
+		return -1;
+	}
+
+	qint64 ret = cli->write(data, size);
+	if (ret < 0) {
+		error = cli->errorString();
+		return -1;
+	}
+
+	return ret;
+}
+
+qint64 CScriptRunnerBase::localClientSend(const QString &name, const char *data, qint64 size, QString &error)
+{
+	QTcpSocket *cli = findChild<QTcpSocket *>(name, Qt::FindChildrenRecursively);
+	if (!cli) {
+		error = "No such client found";
+		return -1;
+	}
+
+	qint64 ret = cli->write(data, size);
+	if (ret < 0) {
+		error = cli->errorString();
+		return -1;
+	}
+
+	return ret;
 }

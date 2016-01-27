@@ -30,6 +30,10 @@ protected:
 
 	virtual void onTimerTimeout(const QString &name);
 
+	virtual bool onNewTcpConnection(const QTcpServer *srv, const QTcpSocket *peer);
+	virtual void onTcpConnectionData(const QTcpServer *srv, const QTcpSocket *peer, const QByteArray &data);
+	virtual void onTcpConnectionClosed(const QTcpServer *srv, const QTcpSocket *peer);
+
 public:
 	CLuaRunner(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig, QObject *parent = 0);
 	virtual ~CLuaRunner();

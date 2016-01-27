@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QStringList>
 #include <QLocalSocket>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -38,6 +40,7 @@ protected:
 	QString m_roomName;
 	QString m_server;
 	QStringList m_participants;
+	bool m_allowListen;
 	QVariantMap m_extraConfig;
 
 	QNetworkAccessManager *m_netMan;
@@ -53,6 +56,10 @@ private slots:
 
 	void timerTimeout();
 
+	void handleNewTcpConnection();
+	void handleTcpConnectionData();
+	void handleTcpConnectionClose();
+
 protected:
 	virtual void onRoomConfigPacket(const CRoomConfigPacket &pkt);
 	virtual void onRoomMessagePacket(const CRoomMessagePacket &pkt);
@@ -61,6 +68,26 @@ protected:
 	virtual void onNetworkRequestFinished(bool allOk, const QString &name, const QString &url, const QByteArray &data);
 
 	virtual void onTimerTimeout(const QString &name);
+
+	virtual bool onNewTcpConnection(const QTcpServer *srv, const QTcpSocket *peer)
+	{
+		Q_UNUSED(srv);
+		Q_UNUSED(peer);
+		return true;
+	}
+
+	virtual void onTcpConnectionData(const QTcpServer *srv, const QTcpSocket *client, const QByteArray &data)
+	{
+		Q_UNUSED(srv);
+		Q_UNUSED(client);
+		Q_UNUSED(data);
+	}
+
+	virtual void onTcpConnectionClosed(const QTcpServer *srv, const QTcpSocket *client)
+	{
+		Q_UNUSED(srv);
+		Q_UNUSED(client);
+	}
 
 public:
 	CScriptRunnerBase(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig,
@@ -77,6 +104,12 @@ public:
 	const QStringList &participants() const { return m_participants; }
 	void networkRequest(const QString &name, const QString &url);
 	void createTimer(const QString &name, int timeout);
+	void localServerCreate(const QString &name, quint16 port, QTcpServer **server, QString &error);
+	void localServerDestroy(const QString &name);
+	void localServerDestroyClient(const QString &name, const QString &clientName);
+	qint64 localServerSend(const QString &name, const QString &clientName, const char *data, qint64 size, QString &error);
+	qint64 localClientSend(const QString &name, const char *data, qint64 size, QString &error);
+	void localClientDestroy(const QString &name);
 
 	void setInitialConfig(const QString &server, const QString &room, const QString &nickname)
 	{

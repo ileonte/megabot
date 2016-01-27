@@ -2,6 +2,7 @@
 #include "cluarunner.h"
 #include "ctlpackets.h"
 
+#include <QHostAddress>
 #include <QXmppPresence.h>
 
 #include <qmath.h>
@@ -186,6 +187,84 @@ void CLuaRunner::onTimerTimeout(const QString &name)
 	}
 
 	m_luaLib->lua_pushstring(L, name.toUtf8().data());
+	if (!safeCallLua(1, 0))
+		LOG(fmt("safeCallLua(): %1").arg(getLuaError()));
+}
+
+bool CLuaRunner::onNewTcpConnection(const QTcpServer *srv, const QTcpSocket *peer)
+{
+	m_luaLib->lua_getglobal(L, "handle_new_connection");
+	if (!m_luaLib->lua_isfunction(L, -1))
+		return true;
+
+	m_luaLib->lua_newtable(L);
+	m_luaLib->lua_pushstring(L, "server");
+	m_luaLib->lua_pushstring(L, srv->objectName());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "client");
+	m_luaLib->lua_pushstring(L, peer->objectName());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "remoteAddr");
+	m_luaLib->lua_pushstring(L, peer->peerAddress().toString());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "remotePort");
+	m_luaLib->lua_pushinteger(L, peer->peerPort());
+	m_luaLib->lua_settable(L, -3);
+
+	if (!safeCallLua(1, 1)) {
+		LOG(fmt("safeCallLua(): %1").arg(getLuaError()));
+		return false;
+	}
+	return m_luaLib->lua_toboolean(L, -1) ? true : false;
+}
+
+void CLuaRunner::onTcpConnectionData(const QTcpServer *srv, const QTcpSocket *peer, const QByteArray &data)
+{
+	m_luaLib->lua_getglobal(L, "handle_connection_data");
+	if (!m_luaLib->lua_isfunction(L, -1))
+		return;
+
+	m_luaLib->lua_newtable(L);
+	m_luaLib->lua_pushstring(L, "server");
+	m_luaLib->lua_pushstring(L, srv->objectName());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "client");
+	m_luaLib->lua_pushstring(L, peer->objectName());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "remoteAddr");
+	m_luaLib->lua_pushstring(L, peer->peerAddress().toString());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "remotePort");
+	m_luaLib->lua_pushinteger(L, peer->peerPort());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "data");
+	m_luaLib->lua_pushlstring(L, data.data(), data.size());
+	m_luaLib->lua_settable(L, -3);
+
+	if (!safeCallLua(1, 0))
+		LOG(fmt("safeCallLua(): %1").arg(getLuaError()));
+}
+
+void CLuaRunner::onTcpConnectionClosed(const QTcpServer *srv, const QTcpSocket *peer)
+{
+	m_luaLib->lua_getglobal(L, "handle_closed_connection");
+	if (!m_luaLib->lua_isfunction(L, -1))
+		return;
+
+	m_luaLib->lua_newtable(L);
+	m_luaLib->lua_pushstring(L, "server");
+	m_luaLib->lua_pushstring(L, srv->objectName());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "client");
+	m_luaLib->lua_pushstring(L, peer->objectName());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "remoteAddr");
+	m_luaLib->lua_pushstring(L, peer->peerAddress().toString());
+	m_luaLib->lua_settable(L, -3);
+	m_luaLib->lua_pushstring(L, "remotePort");
+	m_luaLib->lua_pushinteger(L, peer->peerPort());
+	m_luaLib->lua_settable(L, -3);
+
 	if (!safeCallLua(1, 0))
 		LOG(fmt("safeCallLua(): %1").arg(getLuaError()));
 }
@@ -657,6 +736,91 @@ static int LUACB_tokenize(CLuaLibLoader::lua_State *L)
 	return 1;
 }
 
+static int LUACB_server_listen(CLuaLibLoader::lua_State *L)
+{
+	CLuaRunner *lr = LUARUN;
+
+	if (LUALIB->lua_gettop(L) != 2) {
+		LUALIB->lua_pushboolean(L, 0);
+		LUALIB->lua_pushstring(L, "Usage: server_create(name, port)");
+		return 2;
+	}
+	if (!LUALIB->lua_isstring(L, 1) || !LUALIB->lua_isnumber(L, 2)) {
+		LUALIB->lua_pushboolean(L, 0);
+		LUALIB->lua_pushstring(L, "Usage: server_create(name(string), port(number))");
+		return 2;
+	}
+
+	QString name = LUALIB->lua_tostring(L, 1);
+	quint16 port = (quint16)(LUALIB->lua_tointeger(L, 2) & 0x0000ffff);
+	QString error;
+	QTcpServer *srv = 0;
+
+	lr->localServerCreate(name, port, &srv, error);
+	if (!srv) {
+		LUALIB->lua_pushboolean(L, 0);
+		LUALIB->lua_pushstring(L, error.toUtf8().data());
+		return 2;
+	}
+
+	LUALIB->lua_pushboolean(L, 1);
+	LUALIB->lua_pushnil(L);
+	return 2;
+}
+
+static int LUACB_server_close(CLuaLibLoader::lua_State *L)
+{
+	CLuaRunner *lr = LUARUN;
+
+	if (LUALIB->lua_gettop(L) == 1 && LUALIB->lua_isstring(L, 1)) {
+		lr->localServerDestroy(LUALIB->lua_tostring(L, 1));
+	}
+
+	return 0;
+}
+
+static int LUACB_client_send(CLuaLibLoader::lua_State *L)
+{
+	CLuaRunner *lr = LUARUN;
+
+	if (LUALIB->lua_gettop(L) != 2) {
+		LUALIB->lua_pushinteger(L, -1);
+		LUALIB->lua_pushstring(L, "Usage: client_send(name, port)");
+		return 2;
+	}
+	if (!LUALIB->lua_isstring(L, 1) || !LUALIB->lua_isnumber(L, 2)) {
+		LUALIB->lua_pushinteger(L, -1);
+		LUALIB->lua_pushstring(L, "Usage: client_send(name(string), data(lstring))");
+		return 2;
+	}
+
+	size_t size = 0;
+	const char *name = LUALIB->lua_tostring(L, 1);
+	const char *data = LUALIB->lua_tolstring(L, 2, &size);
+	QString error;
+	qint64 written = lr->localClientSend(name, data, size, error);
+	if (written < 0) {
+		LUALIB->lua_pushinteger(L, -1);
+		LUALIB->lua_pushstring(L, error);
+		return 2;
+	}
+
+	LUALIB->lua_pushinteger(L, written);
+	LUALIB->lua_pushnil(L);
+	return 2;
+}
+
+static int LUACB_client_close(CLuaLibLoader::lua_State *L)
+{
+	CLuaRunner *lr = LUARUN;
+
+	if (LUALIB->lua_gettop(L) == 1 && LUALIB->lua_isstring(L, 1)) {
+		lr->localClientDestroy(LUALIB->lua_tostring(L, 1));
+	}
+
+	return 0;
+}
+
 bool CLuaRunner::setupScript()
 {
 	int r = 0;
@@ -710,6 +874,11 @@ bool CLuaRunner::setupScript()
 	m_luaLib->lua_register(L, "dout", LUACB_log);
 	m_luaLib->lua_register(L, "set_timer", LUACB_settimer);
 	m_luaLib->lua_register(L, "tokenize", LUACB_tokenize);
+
+	m_luaLib->lua_register(L, "server_listen", LUACB_server_listen);
+	m_luaLib->lua_register(L, "server_close", LUACB_server_close);
+	m_luaLib->lua_register(L, "client_send", LUACB_client_send);
+	m_luaLib->lua_register(L, "client_close", LUACB_client_close);
 
 	if (!safeCallLua(0, 0)) {
 		LOG(fmt("Failed to run '%1': %2").arg(m_script).arg(getLuaError()));

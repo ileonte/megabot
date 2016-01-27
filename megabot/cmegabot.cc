@@ -257,7 +257,7 @@ void CMegaBot::quit()
 		for (int i = 0; i < m_servers.size(); i++)
 			m_servers[i]->disconnectFromServer();
 	}
-	QCoreApplication::quit();
+	exit(0);
 }
 
 void CMegaBot::closeAllSockets(int except)
