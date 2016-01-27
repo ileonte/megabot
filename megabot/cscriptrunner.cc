@@ -262,7 +262,7 @@ void CScriptRunnerBase::localServerCreate(const QString &name, quint16 port, QTc
 		error = "You failed to specify a name for the server";
 		return;
 	}
-	if (findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly)) {
+	if (findChild<QTcpServer *>(name)) {
 		error = "A server with that name already exists";
 		return;
 	}
@@ -281,7 +281,7 @@ void CScriptRunnerBase::localServerCreate(const QString &name, quint16 port, QTc
 
 void CScriptRunnerBase::localServerDestroy(const QString &name)
 {
-	QTcpServer *srv = findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly);
+	QTcpServer *srv = findChild<QTcpServer *>(name);
 	if (srv) {
 		srv->close();
 		srv->deleteLater();
@@ -290,10 +290,10 @@ void CScriptRunnerBase::localServerDestroy(const QString &name)
 
 void CScriptRunnerBase::localServerDestroyClient(const QString &name, const QString &clientName)
 {
-	QTcpServer *srv = findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly);
+	QTcpServer *srv = findChild<QTcpServer *>(name);
 	if (!srv)
 		return;
-	QTcpSocket *cli = srv->findChild<QTcpSocket *>(clientName, Qt::FindDirectChildrenOnly);
+	QTcpSocket *cli = srv->findChild<QTcpSocket *>(clientName);
 	if (!cli)
 		return;
 	cli->close();
@@ -302,7 +302,7 @@ void CScriptRunnerBase::localServerDestroyClient(const QString &name, const QStr
 
 void CScriptRunnerBase::localClientDestroy(const QString &name)
 {
-	QTcpSocket *cli = findChild<QTcpSocket *>(name, Qt::FindChildrenRecursively);
+	QTcpSocket *cli = findChild<QTcpSocket *>(name);
 	if (cli) {
 		cli->close();
 		cli->deleteLater();
@@ -311,12 +311,12 @@ void CScriptRunnerBase::localClientDestroy(const QString &name)
 
 qint64 CScriptRunnerBase::localServerSend(const QString &name, const QString &clientName, const char *data, qint64 size, QString &error)
 {
-	QTcpServer *srv = findChild<QTcpServer *>(name, Qt::FindDirectChildrenOnly);
+	QTcpServer *srv = findChild<QTcpServer *>(name);
 	if (!srv) {
 		error = "No such server found";
 		return -1;
 	}
-	QTcpSocket *cli = srv->findChild<QTcpSocket *>(clientName, Qt::FindDirectChildrenOnly);
+	QTcpSocket *cli = srv->findChild<QTcpSocket *>(clientName);
 	if (!cli) {
 		error = "No such client found";
 		return -1;
@@ -333,7 +333,7 @@ qint64 CScriptRunnerBase::localServerSend(const QString &name, const QString &cl
 
 qint64 CScriptRunnerBase::localClientSend(const QString &name, const char *data, qint64 size, QString &error)
 {
-	QTcpSocket *cli = findChild<QTcpSocket *>(name, Qt::FindChildrenRecursively);
+	QTcpSocket *cli = findChild<QTcpSocket *>(name);
 	if (!cli) {
 		error = "No such client found";
 		return -1;
