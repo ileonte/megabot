@@ -5,4 +5,4 @@ moc_*.cpp
 *.a
 *.prl
 *.pro.user
-
+test/*
