@@ -6,7 +6,7 @@
 
 CScriptRunnerBase::CScriptRunnerBase(const QString &handle, const QString &name, int fd, const QVariantMap &extraConfig,
                                      QObject *parent)
-    : QObject(parent), m_allowListen(false), m_extraConfig(extraConfig)
+    : QObject(parent), m_allowListen(true), m_extraConfig(extraConfig)
 {
 	m_networkRequestCount = 0;
 	m_timerCount = 0;
@@ -22,6 +22,13 @@ CScriptRunnerBase::CScriptRunnerBase(const QString &handle, const QString &name,
 	QVariant vv = m_extraConfig.value("allowLocalServers");
 	if (vv.isValid() && vv.type() == QVariant::Bool)
 		m_allowListen = vv.toBool();
+
+	QVariantMap env = m_extraConfig.value("env").toMap();
+	foreach (QString valName, env.keys()) {
+		QVariant val = env.value(valName);
+		if (val.type() == QVariant::String)
+			setenv(valName.toUtf8().data(), val.toString().toUtf8().data(), 1);
+	}
 
 	m_netMan = new QNetworkAccessManager(this);
 	connect(m_netMan, SIGNAL(finished(QNetworkReply *)), this, SLOT(networkRequestFinished(QNetworkReply *)));
