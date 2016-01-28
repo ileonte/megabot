@@ -316,7 +316,8 @@ void CScriptRunnerBase::localClientDestroy(const QString &name)
 	}
 }
 
-qint64 CScriptRunnerBase::localServerSend(const QString &name, const QString &clientName, const char *data, qint64 size, QString &error)
+qint64 CScriptRunnerBase::localServerSend(const QString &name, const QString &clientName, const char *data, qint64 size,
+                                          QString &error)
 {
 	QTcpServer *srv = findChild<QTcpServer *>(name);
 	if (!srv) {
