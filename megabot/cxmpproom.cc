@@ -87,15 +87,12 @@ void CXMPPRoom::handleRoomPresence(const QXmppPresence &presence)
 	switch (presence.type()) {
 		case QXmppPresence::Available: {
 			m_participants.append(nickName);
-			LOG(fmt("'%1' is now a participant in '%2'").arg(nickName).arg(jid()));
 			break;
 		}
 		case QXmppPresence::Unavailable: {
 			if (nickName != m_nickName) {
 				m_participants.removeAll(nickName);
-				LOG(fmt("'%1' has left '%2'").arg(nickName).arg(jid()));
 			} else {
-				LOG(fmt("KICKED from '%1'").arg(jid()));
 				part();
 				return;
 			}
